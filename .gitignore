@@ -5,3 +5,4 @@ git-bash.cmd
 *.epub
 *.zip
 *fb2
+!книги/
