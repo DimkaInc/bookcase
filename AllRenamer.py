@@ -14,101 +14,111 @@
 import os, zipfile, datetime, zlib
 from termcolor import colored
 from colorama import init
-# Инициализация Colorama
-init(autoreset = True)
 
-now = datetime.datetime.now()
-version = "1.1.0.32"
-author = "Дмитрий Добрышин"
-email = "dimkainc@mail.ru"
 
-print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
-  colored("(v"+version+")", "red", attrs = ["bold"]))
-print(colored("©", "yellow", attrs = ["bold"]), 
-  colored("%d" % now.year + " " + author, "white", attrs = ["bold"]),
-  colored(email, "cyan", attrs = ["bold", "underline"]), "\n")
+class GoodBooks:
+    """Класс наведения порядка среди книг"""
 
-files = os.listdir(".")
-lenFiles = len(files)
-files.sort()
-crc32list = []
+    version = "2.0.0.1"
+    author = "Дмитрий Добрышин"
+    email = "dimkainc@mail.ru"
+    
+    crc32list = [] # хеши файлов
+    filelist = [] # имена файлов
 
-def crc32(filename, chunksize=65536):
-  """Подсчёт CRC32 суммы для файла"""
-  hash = 0
-  with open(filename, "rb") as f:
-    while (chunk := f.read(chunksize)):
-      hash = zlib.crc32(chunk, hash)
-  return "%08X" % (hash & 0xFFFFFFFF)
+    def __init__(self):
+        
+        # Инициализация Colorama
+        init(autoreset = True)
+        now = datetime.datetime.now()
+        print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
+          colored("(v" + self.version + ")", "red", attrs = ["bold"]))
+        print(colored("©", "yellow", attrs = ["bold"]), 
+          colored("%d" % now.year + " " + self.author, "white", attrs = ["bold"]),
+          colored(self.email, "cyan", attrs = ["bold", "underline"]), "\n")
 
-def existfile(nfile, ext):
-  """Генерация имени фала, если совпадает с существующим"""
-  global crc32list
 
-  num = 0
-  newfile = nfile + ext
-  while os.path.exists(newfile):
-    num += 1
-    newfile = nfile + "(%d)" % num + ext
-  return newfile
+    def crc32(self, filename, chunksize=65536):
+        """Подсчёт CRC32 суммы для файла"""
+        hash = 0
+        with open(filename, "rb") as f:
+            while (chunk := f.read(chunksize)):
+                hash = zlib.crc32(chunk, hash)
+        return "%08X" % (hash & 0xFFFFFFFF)
 
-#allFilesCRC32 = []
-"""Сбор CRC32 всех файлов"""
-print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "grey"))
-percent = 0
-for file in files:
-  percent += 1
-  print( "%d" % (percent * 100 // lenFiles), "%", end="\r")
-  if (file.lower().endswith(".fb2.zip") or 
-    (file.lower().endswith(".epub") and 
-    not file.lower().endswith(".fb2.epub")) or 
-    file.lower().endswith(".fb2")):
-    fcrc32 = crc32(file)
+    def existfile(self, nfile, ext):
+        """Генерация имени фала, если совпадает с существующим"""
+        num = 0
+        newfile = nfile + ext
+        while os.path.exists(newfile):
+            num += 1
+            newfile = nfile + "_(%d)" % num + ext
+        return newfile
 
-    if fcrc32 in crc32list:
-      os.remove(file)
-      print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + file)
-    else:
-      crc32list.append(fcrc32)
+    def tryAddCrc(self, filename):
+        """Проверка на присутствие хеша"""
+        fcrc32 = self.crc32(filename)
+        if fcrc32 in self.crc32list:
+            return False
+        self.filelist.append(filename)
+        self.crc32list.append(fcrc32)
+        return True
 
-files = os.listdir(".")
-lenFiles = len(files)
-files.sort()
-percent = 0
+    def tryNewFile(self, filename, extmask, newext):
+        """
+        Если файл имеет указанное окончание, 
+        то возвращается новое свободное имя файла или False
+        """
+        if not filename.lower().endswith(extmask):
+            return False
+        return self.existfile(filename[0:-len(extmask)], newext)
 
-for file in files:
-  percent += 1
-  print( "%d" % (percent * 100 // lenFiles), "%", end="\r")
-  ext = ".fb2.epub"
-  newext = ".epub"
-  endext = len(ext)
-  num = 0
-  if file.lower().endswith(ext):
-    mycrc32 = crc32(file)
-    if mycrc32 in crc32list:
-      os.remove(file)
-      print(colored("[EPUB]", "red", attrs = ["bold"]), "Это дубликат: " +
-        file)
-    else:
-      crc32list.append(mycrc32)
-      newfile = existfile(file[0:-endext], newext)
-      os.rename(file, newfile)
-      print(colored("[EPUB]", "yellow", attrs = ["bold"]), "Файл переименован: " +
-        newfile)
+    def tryfb2epub(self, filename):
+        newfile = self.tryNewFile(filename, ".fb2.epub", ".epub")
+        if not newfile:
+            return False
+        os.rename(filename, newfile)
+        print(colored("[EPUB]", "yellow", attrs = ["bold"]), "Файл переименован: " +
+            newfile)
+        return True
 
-  if file.lower().endswith(".fb2"):
-    newfile = existfile(file[0:-4], ".fb2.zip")
-    archfile = zipfile.ZipFile(newfile, "w")
-    archfile.write(file, compress_type=zipfile.ZIP_DEFLATED)
-    archfile.close()
-    os.remove(file)
-    mycrc32 = crc32(newfile)
-    if mycrc32 in crc32list:
-      os.remove(newfile)
-      print(colored("[FB2.ZIP]", "red", attrs = ["bold"]), "Это дубликат: " +
-        file)
-    else:
-      crc32list.append(mycrc32)
-      print(colored("[FB2.ZIP]", "green", attrs = ["bold"]), "Файл сжат: " +
-        newfile)
- 
+    def tryfb2(self, filename):
+        newfile = self.tryNewFile(filename, ".fb2", ".fb2.zip")
+        #print(colored("DEBUG", "magenta", attrs = ["bold"]), newfile)
+        if not newfile:
+            return False
+        archfile = zipfile.ZipFile(newfile, "w")
+        archfile.write(filename, compress_type = zipfile.ZIP_DEFLATED)
+        archfile.close()
+        os.remove(filename)
+        self.files.append(newfile)
+        self.countfiles += 1
+        print(colored("[FB2.ZIP]", "green", attrs = ["bold"]), "Файл сжат: " +
+            newfile)
+        return True
+
+    def checkFile(self, filename):
+        if self.tryAddCrc(filename):
+            if self.tryfb2epub(filename):
+                return True
+            elif self.tryfb2(filename):
+                return True
+            return True
+        os.remove(filename)
+        print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + filename)
+        return False
+
+    def start(self, directory = "."):
+        percent = 0
+        self.files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        self.countfiles = len(self.files)
+        self.files.sort()
+        print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
+        for filename in self.files:
+            percent += 1
+            print( "%d" % (percent * 100 // self.countfiles), "%", end="\r")
+            self.checkFile(filename)
+        print(colored("Проверка завершена", "green", attrs = ["bold"]))
+
+Library = GoodBooks()
+Library.start()
