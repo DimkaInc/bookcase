@@ -11,26 +11,75 @@
 '''
 
 # -*- coding: utf-8 -*-
-import os
-import zipfile
+import os, zipfile, datetime, zlib
+from termcolor import colored
+from colorama import init
+#initializes Colorama
+init(autoreset=True)
+now = datetime.datetime.now()
 
-print("Приведение в порядок файлов книг")
-print("Copyright (C) 2022 Дмитрий Добрышин dimkainc@mail.ru")
+version = "1.1.0.32"
+author = "Дмитрий Добрышин"
+email = "dimkainc@mail.ru"
+
+print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
+  colored("(v"+version+")", "red", attrs = ["bold"]))
+print(colored("©", "yellow", attrs = ["bold"]), 
+  colored("%d" % now.year + " " + author, "white", attrs = ["bold"]),
+  colored(email, "cyan", attrs = ["bold", "underline"]), "\n")
 
 files = os.listdir(".")
+crc32list = []
+
+def crc32(filename, chunksize=65536):
+  """Подсчёт CRC32 суммы для файла"""
+  hash = 0
+  with open(filename, "rb") as f:
+    while (chunk := f.read(chunksize)):
+      hash = zlib.crc32(chunk, hash)
+  return "%08X" % (hash & 0xFFFFFFFF)
+
+def existfile(nfile, ext):
+  """Генерация имени фала, если совпадает с существующим"""
+  global crc32list
+  crc32list = []
+  num = 0
+  newfile = nfile + ext
+  while os.path.exists(newfile):
+    crc32list.append(crc32(newfile))
+    num += 1
+    newfile = nfile + "(%d)" % num + ext
+  return newfile
 
 for file in files:
   ext = ".fb2.epub"
   newext = ".epub"
   endext = len(ext)
+  num = 0
   if file.lower().endswith(ext):
-    os.rename(file, file[0:-endext]+newext)
-    print("[EPUB] Файл переименован: "+file[0:-endext]+newext)
+    mycrc32 = crc32(file)
+    newfile = existfile(file[0:-endext], newext)
+    if mycrc32 in crc32list:
+      os.remove(file)
+      print(colored("[EPUB]", "red", attrs = ["bold"]), "Это дубликат: " +
+        file)
+    else:
+      os.rename(file, newfile)
+      print(colored("[EPUB]", "yellow", attrs = ["bold"]), "Файл переименован: " +
+        newfile)
 
   if file.lower().endswith(".fb2"):
-    archfile = zipfile.ZipFile(file[0:-4]+".fb2.zip", "w")
+    newfile = existfile(file[0:-4], ".fb2.zip")
+    archfile = zipfile.ZipFile(newfile, "w")
     archfile.write(file, compress_type=zipfile.ZIP_DEFLATED)
     archfile.close()
     os.remove(file)
-    print("[FB2.ZIP] Файл сжат: "+file[0:-4]+".fb2.zip")
+    mycrc32 = crc32(newfile)
+    if mycrc32 in crc32list:
+      os.remove(newfile)
+      print(colored("[FB2.ZIP]", "red", attrs = ["bold"]), "Это дубликат: " +
+        file)
+    else:
+      print(colored("[FB2.ZIP]", "green", attrs = ["bold"]), "Файл сжат: " +
+        newfile)
  

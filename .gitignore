@@ -1,0 +1,4 @@
+﻿# exclude everything except current directory
+__pycache__
+.git/
+git-bash.cmd
