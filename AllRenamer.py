@@ -11,7 +11,7 @@
 '''
 
 # -*- coding: utf-8 -*-
-import os, zipfile, datetime, zlib
+import os, zipfile, datetime, zlib, pathlib, time
 from termcolor import colored
 from colorama import init
 
@@ -19,7 +19,7 @@ from colorama import init
 class GoodBooks:
     """Класс наведения порядка среди книг"""
 
-    version = "2.0.0.1"
+    version = "2.1.0.33"
     author = "Дмитрий Добрышин"
     email = "dimkainc@mail.ru"
     
@@ -60,7 +60,7 @@ class GoodBooks:
         fcrc32 = self.crc32(filename)
         if fcrc32 in self.crc32list:
             return False
-        self.filelist.append(filename)
+        #self.filelist.append(filename)
         self.crc32list.append(fcrc32)
         return True
 
@@ -91,11 +91,49 @@ class GoodBooks:
         archfile.write(filename, compress_type = zipfile.ZIP_DEFLATED)
         archfile.close()
         os.remove(filename)
-        self.files.append(newfile)
-        self.countfiles += 1
+        self.appendFile(newfile)
         print(colored("[FB2.ZIP]", "green", attrs = ["bold"]), "Файл сжат: " +
             newfile)
         return True
+
+    def appendFile(self, filename):
+        self.files.append(filename)
+        self.countfiles += 1
+
+    def extractFileFromZip(self, zipFile, zipItem, outPath):
+        arch = zipfile.ZipFile(zipFile, "r")
+        name, date_time = zipItem.filename, zipItem.date_time
+        arch.extract(zipItem, outPath)
+        date_time = time.mktime(date_time + (0, 0, -1))
+        os.utime(os.path.join(outPath, name), (date_time, date_time))
+
+    def tryZip(self, filename):
+        newfile = self.tryNewFile(filename, ".zip", ".rzip")
+        if not newfile:
+            return False
+        pathextract = "./tmp"
+        passfile = False
+        archfile = zipfile.ZipFile(filename, "r")
+        includes = archfile.infolist()
+        if len(includes) > 1:
+          for item in includes:
+            try:
+                unicodename = item.filename.encode("cp437").decode("cp866")
+                
+            except:
+                unicodename = item
+
+            ext = pathlib.Path(unicodename.lower()).suffix
+            if ext in [".zip", ".epub", ".fb2", ".rtf", ".pdf", ".docx", ".doc", ".txt"]:
+                self.extractFileFromZip(filename, item, pathextract)
+                newfile = self.existfile(unicodename[0:-len(ext)], ext)
+                os.rename(os.path.join(pathextract, item.filename), newfile)
+                os.rmdir(pathextract)
+                self.appendFile(newfile)
+                print(">>> %s" % newfile)
+            
+        archfile.close()
+
 
     def checkFile(self, filename):
         if self.tryAddCrc(filename):
@@ -103,9 +141,15 @@ class GoodBooks:
                 return True
             elif self.tryfb2(filename):
                 return True
+            elif self.tryZip(filename):
+                return True
             return True
-        os.remove(filename)
-        print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + filename)
+        try:
+            os.remove(filename)
+            print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + filename)
+        except OSError as e:
+            print("Failed with:", e.strerror) # look what it says
+            print("Error code:", e.code)
         return False
 
     def start(self, directory = "."):
@@ -115,8 +159,13 @@ class GoodBooks:
         self.files.sort()
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
         for filename in self.files:
+            #while True:
+            #if percent == self.countfiles:
+            #    break
+            #filename = self.files[percent]
             percent += 1
-            print( "%d" % (percent * 100 // self.countfiles), "%", end="\r")
+            print( "%d" % ((percent) * 100 // self.countfiles), "%", end="\r")
+            #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
             self.checkFile(filename)
         print(colored("Проверка завершена", "green", attrs = ["bold"]))
 
