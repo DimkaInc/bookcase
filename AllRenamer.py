@@ -11,7 +11,7 @@
 '''
 
 # -*- coding: utf-8 -*-
-import os, zipfile, datetime, zlib, pathlib, time
+import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
 from termcolor import colored
 from colorama import init
 
@@ -19,7 +19,7 @@ from colorama import init
 class GoodBooks:
     """Класс наведения порядка среди книг"""
 
-    version = "2.1.0.33"
+    version = "2.1.0.48"
     author = "Дмитрий Добрышин"
     email = "dimkainc@mail.ru"
     
@@ -29,6 +29,7 @@ class GoodBooks:
     def __init__(self):
         
         # Инициализация Colorama
+        sys.stdout.reconfigure(encoding = "utf-8")
         init(autoreset = True)
         now = datetime.datetime.now()
         print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
@@ -52,7 +53,7 @@ class GoodBooks:
         newfile = nfile + ext
         while os.path.exists(newfile):
             num += 1
-            newfile = nfile + "_(%d)" % num + ext
+            newfile = nfile + "_(%d)%s" % (num, ext)
         return newfile
 
     def tryAddCrc(self, filename):
@@ -60,7 +61,6 @@ class GoodBooks:
         fcrc32 = self.crc32(filename)
         if fcrc32 in self.crc32list:
             return False
-        #self.filelist.append(filename)
         self.crc32list.append(fcrc32)
         return True
 
@@ -100,37 +100,56 @@ class GoodBooks:
         self.files.append(filename)
         self.countfiles += 1
 
-    def extractFileFromZip(self, zipFile, zipItem, outPath):
+    def decodeZipFile(self, zipItem, zipFile=""):
+        result = ""
+        if zipItem.flag_bits & 0b1000:
+            result = zipItem.filename.encode("cp437").decode("utf-8")
+        else:
+            print(colored("[DEBUG] %s" % zipFile, "magenta", attrs = ["bold"]), "flags:", bin(zipItem.flag_bits) )
+            try:
+                result = zipItem.filename.encode("cp437").decode("cp866")
+            except:
+                result = zipItem.filename
+        return result.replace("\\", os.path.sep)
+
+    def extractFileFromZip(self, zipFile, zipItem):
+        """Извлечение файла из архива в текущий каталог без сохранения структуры"""
+
         arch = zipfile.ZipFile(zipFile, "r")
         name, date_time = zipItem.filename, zipItem.date_time
-        arch.extract(zipItem, outPath)
+        filename = os.path.basename(self.decodeZipFile(zipItem, zipFile))
+        # проверка уникальности имени на всякий случай
+        ext = pathlib.Path(filename.lower()).suffix
+        filename = self.existfile(filename[0:-len(ext)], ext)
+        
+        source = arch.open(zipItem)
+        target = open(filename, "wb")
+        with source, target:
+            shutil.copyfileobj(source, target)
+        
         date_time = time.mktime(date_time + (0, 0, -1))
-        os.utime(os.path.join(outPath, name), (date_time, date_time))
+        os.utime(filename, (date_time, date_time))
+        
+        return filename
 
     def tryZip(self, filename):
-        newfile = self.tryNewFile(filename, ".zip", ".rzip")
-        if not newfile:
+        if not self.tryNewFile(filename, ".zip", ".rzip"):
             return False
-        pathextract = "./tmp"
-        passfile = False
         archfile = zipfile.ZipFile(filename, "r")
         includes = archfile.infolist()
+        archfile.close()
         if len(includes) > 1:
           for item in includes:
-            try:
-                unicodename = item.filename.encode("cp437").decode("cp866")
-                
-            except:
-                unicodename = item
-
-            ext = pathlib.Path(unicodename.lower()).suffix
+            ext = pathlib.Path(item.filename.lower()).suffix
             if ext in [".zip", ".epub", ".fb2", ".rtf", ".pdf", ".docx", ".doc", ".txt"]:
-                self.extractFileFromZip(filename, item, pathextract)
-                newfile = self.existfile(unicodename[0:-len(ext)], ext)
-                os.rename(os.path.join(pathextract, item.filename), newfile)
-                os.rmdir(pathextract)
-                self.appendFile(newfile)
-                print(">>> %s" % newfile)
+                unicodename = self.extractFileFromZip(filename, item)
+                self.appendFile(unicodename)
+                print(">>> %s" % unicodename)
+        else:
+            if (not filename.lower().endswith(".fb2.zip") and
+                includes[0].filename.lower().endswith(".fb2")):
+                if (newfile := self.tryNewFile(filename, ".zip", ".fb2.zip")):
+                    os.rename(filename, newfile)
             
         archfile.close()
 
@@ -159,10 +178,6 @@ class GoodBooks:
         self.files.sort()
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
         for filename in self.files:
-            #while True:
-            #if percent == self.countfiles:
-            #    break
-            #filename = self.files[percent]
             percent += 1
             print( "%d" % ((percent) * 100 // self.countfiles), "%", end="\r")
             #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
