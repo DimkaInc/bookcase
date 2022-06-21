@@ -15,6 +15,7 @@ import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
 from termcolor import colored
 from colorama import init
 from xml.dom import minidom
+import version
 
 class Crc32:
     """Подсчёт CRC32 суммы для файла"""
@@ -167,7 +168,7 @@ class Book_Fb2(Book):
 class GoodBooks:
     """Класс наведения порядка среди книг"""
 
-    version = "2.2.4"
+    version = version.version
     author = "Дмитрий Добрышин"
     email = "dimkainc@mail.ru"
     
