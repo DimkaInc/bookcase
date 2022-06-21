@@ -14,12 +14,160 @@
 import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
 from termcolor import colored
 from colorama import init
+from xml.dom import minidom
 
+class Crc32:
+    """Подсчёт CRC32 суммы для файла"""
+
+    def crc32(self, filename, chunksize=65536):
+
+        hash = 0
+        with open(filename, "rb") as f:
+            while (chunk := f.read(chunksize)):
+                hash = zlib.crc32(chunk, hash)
+        return "%08X" % (hash & 0xFFFFFFFF)
+
+class Book:
+    """Прототип класса книга."""
+    filename = ""
+    booktype = ""
+    crc32 = ""
+    bookname = ""
+    author = "Неизвестен"
+    born = 0.0
+    change = 0.0
+    booksize = 0
+    dead = True
+
+    def is_dead(self):
+        return self.dead
+
+    def __del__(self):
+        # none
+        self.dead = True
+
+    def __init__(self, filename):
+        self.filename = filename.lower()
+        self.booktype = pathlib.Path(self.filename).suffix
+        self.bookname = self.filename[0:-len(self.booktype)]
+        stat = os.stat(self.filename)
+        self.booksize = stat.st_size
+        self.born = stat.st_atime
+        self.change = stat.st_mtime
+        self.crc32 = Crc32().crc32(self.filename)
+        self.dead = False
+
+
+    def fileName(self):
+        return self.filename # Имя файла
+
+    def bookName(self):
+        return self.bookname # Название книги
+
+    def Crc32(self):
+        return self.crc32 # Контрольная сумма книги
+
+    def bookType(self):
+        return self.booktype # Тип книги
+
+    def Author(self):
+        return self.author # Автор
+
+    def bookSize(self):
+        return self.booksize # Размер книги
+
+    def Born(self):
+        return self.born # Дата и время создания книги
+
+    def Change(self):
+        return self.change # Дата и время изменения книги
+
+    def ShowBook(self):
+        print("Название: %s" % self.bookName())
+        print("Автор:    %s" % self.Author())
+        print("Дата:     %s" % self.Born().strftime("%d.%m.%Y, %H:%M:%S"))
+        print("Файл:     %s" % self.fileName())
+        print("Размер:   %d B" % self.bookSize())
+    def makeFileName(self):
+        return ("%s-%s%s" % (self.Author(), self.bookName(), self.bookType())).replace(" ", "_")
+
+    def compareWith(self, book):
+        """
+        Сравнение с другой книгой (book)
+
+          10 - разные
+          -1 - одинаковые, другая полнее
+          0  - одинаковые равные
+          1  - одинаковые, эта полнее
+        """
+        if self.Author() != book.Author():
+            return 10
+        if self.bookName() != book.bookName():
+            return 10
+        if self.Crc32() == book.Crc32():
+            return 0
+        if self.bookSize() < book.bookSize():
+            return -1
+        return 1
+
+class Book_Fb2(Book):
+
+    lang = ""
+    sequenceName = ""
+    sequenceNumber = ""
+    bookId = ""
+
+    def __init__(self, filename):
+        super(Book_Fb2, self).__init__(filename)
+        if self.booktype != ".fb2":
+            self.dead = True
+        else:
+            book = minidom.parse(self.filename)
+            description = book.getElementsByTagName("description")
+            titleinfo = description[0].getElementsByTagName("title-info")
+            self.lang = titleinfo[0].getElementsByTagName("lang")[0].childNodes[0].nodeValue
+            authorFirst = titleinfo[0].getElementsByTagName("first-name")[0].childNodes[0].nodeValue
+            authorLast = titleinfo[0].getElementsByTagName("last-name")[0].childNodes[0].nodeValue
+            self.author = "%s %s" % (authorFirst, authorLast)
+            self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
+            sequenceTag = titleinfo[0].getElementsByTagName("sequence")[0]
+            self.sequenceName = sequenceTag.attributes['name'].value
+            self.sequenceNumber = sequenceTag.attributes['number'].value
+            docinfo = description[0].getElementsByTagName("document-info")
+            self.bookId = docinfo[0].getElementsByTagName("id")[0].childNodes[0].nodeValue
+            bookDate = docinfo[0].getElementsByTagName("date")[0].attributes["value"].value
+            self.born = datetime.datetime.strptime(bookDate, "%Y-%m-%d %H:%M:%S")
+
+    def Lang(self):
+        return self.lang # Язык книги
+
+    def Sequence(self):
+        return "%s [%s]" % (self.sequenceName, self.sequenceNumber) # Серия книги
+
+    def BookId(self):
+        return self.bookId # Идентификатор книги
+
+    def ShowBook(self):
+        print("ID:       %s" % self.BookId())
+        print("Серия:    %s" % self.Sequence())
+        super(Book_Fb2, self).ShowBook()
+
+    def makeFileName(self):
+        if (self.sequenceNumber != ""):
+            return ("%s-%s-%s%s" % (self.Sequence(), self.Author(), self.bookName(), self.bookType())).replace(" ", "_")
+        else:
+            return super(Book_Fb2, self).makeFileName()
+
+    def compareWith(self, book):
+        if self.sequenceNumber != "":
+            if self.Sequence() != book.Sequence():
+                return 10
+        return super(Book_Fb2, self).compareWith(book)
 
 class GoodBooks:
     """Класс наведения порядка среди книг"""
 
-    version = "2.1.0.48"
+    version = "2.2.1"
     author = "Дмитрий Добрышин"
     email = "dimkainc@mail.ru"
     
@@ -104,6 +252,8 @@ class GoodBooks:
         result = ""
         if zipItem.flag_bits & 0b1000:
             result = zipItem.filename.encode("cp437").decode("utf-8")
+        elif (zipItem.flag_bits & 0b100000000000) or (zipItem.flag_bits == 0):
+            result = zipItem.filename
         else:
             print(colored("[DEBUG] %s" % zipFile, "magenta", attrs = ["bold"]), "flags:", bin(zipItem.flag_bits) )
             try:
@@ -179,6 +329,11 @@ class GoodBooks:
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
         for filename in self.files:
             percent += 1
+            if not (book := Book_Fb2(filename)).is_dead():
+                book.ShowBook()
+                print(book.makeFileName())
+            else:
+                del book
             print( "%d" % ((percent) * 100 // self.countfiles), "%", end="\r")
             #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
             self.checkFile(filename)
