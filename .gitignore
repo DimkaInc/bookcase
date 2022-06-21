@@ -1,8 +1,10 @@
 ﻿# exclude everything except current directory
 __pycache__
 .git/
-git-bash.cmd
+.bump*.*
+*.cmd
 *.epub
 *.zip
 *fb2
+
 книги
