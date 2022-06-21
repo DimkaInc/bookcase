@@ -167,7 +167,7 @@ class Book_Fb2(Book):
 class GoodBooks:
     """Класс наведения порядка среди книг"""
 
-    version = "2.2.1"
+    version = "2.2.3"
     author = "Дмитрий Добрышин"
     email = "dimkainc@mail.ru"
     
