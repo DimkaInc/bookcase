@@ -92,13 +92,13 @@ class Book_Fb2(Book):
         """
         return self.bookId # Идентификатор книги
 
-    def ShowBook(self):
+    def showBook(self):
         """
         Выводит информацию о книге в консоль
         """
         print("ID:       %s" % self.BookId())
         print("Серия:    %s" % self.Sequence())
-        super(Book_Fb2, self).ShowBook()
+        super(Book_Fb2, self).showBook()
 
     def makeName(self):
         """
