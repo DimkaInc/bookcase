@@ -17,6 +17,7 @@ from colorama import init
 from xml.dom import minidom
 from book_fb2 import Book_Fb2
 from crc32 import Crc32
+from files import Files
 import version
 
 class GoodBooks:
@@ -27,7 +28,7 @@ class GoodBooks:
     email = "dimkainc@mail.ru"
     
     crc32list = [] # хеши файлов
-    filelist = [] # имена файлов
+    filelist = None # имена файлов
 
     def __init__(self):
         
@@ -35,6 +36,7 @@ class GoodBooks:
         sys.stdout.reconfigure(encoding = "utf-8")
         init(autoreset = True)
         now = datetime.datetime.now()
+        self.filelist = Files(".")
         print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
           colored("(v" + self.version + ")", "red", attrs = ["bold"]))
         print(colored("©", "yellow", attrs = ["bold"]), 
@@ -42,18 +44,18 @@ class GoodBooks:
           colored(self.email, "cyan", attrs = ["bold", "underline"]), "\n")
 
 
-    def existfile(self, nfile, ext):
-        """Генерация имени фала, если совпадает с существующим"""
-        num = 0
-        newfile = nfile + ext
-        while os.path.exists(newfile):
-            num += 1
-            newfile = nfile + "_(%d)%s" % (num, ext)
-        return newfile
+    #def existfile(self, nfile, ext):
+    #    """Генерация имени фала, если совпадает с существующим"""
+    #    num = 0
+    #    newfile = nfile + ext
+    #    while os.path.exists(newfile):
+    #        num += 1
+    #        newfile = nfile + "_(%d)%s" % (num, ext)
+    #    return newfile
 
     def tryAddCrc(self, filename):
         """Проверка на присутствие хеша"""
-        fcrc32 = Crc32().crc32(filename)
+        fcrc32 = Crc32().crc32File(filename)
         if fcrc32 in self.crc32list:
             return False
         self.crc32list.append(fcrc32)
@@ -66,7 +68,7 @@ class GoodBooks:
         """
         if not filename.lower().endswith(extmask):
             return False
-        return self.existfile(filename[0:-len(extmask)], newext)
+        return self.filelist.newFileIfExist(filename[0:-len(extmask)], newext)
 
     def tryfb2epub(self, filename):
         newfile = self.tryNewFile(filename, ".fb2.epub", ".epub")
@@ -110,7 +112,9 @@ class GoodBooks:
         return result.replace("\\", os.path.sep)
 
     def extractFileFromZip(self, zipFile, zipItem):
-        """Извлечение файла из архива в текущий каталог без сохранения структуры"""
+        """
+        Извлечение файла из архива в текущий каталог без сохранения структуры
+        """
 
         arch = zipfile.ZipFile(zipFile, "r")
         name, date_time = zipItem.filename, zipItem.date_time
