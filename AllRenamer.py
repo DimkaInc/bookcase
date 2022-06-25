@@ -26,12 +26,14 @@ class GoodBooks:
     version = version.version
     author = "Дмитрий Добрышин"
     email = "dimkainc@mail.ru"
-    
+
     crc32list = [] # хеши файлов
     filelist = None # имена файлов
+    bookList = [] # список книг
+    filesWithCrc32 = [] # список книг с crc32
 
     def __init__(self):
-        
+
         # Инициализация Colorama
         sys.stdout.reconfigure(encoding = "utf-8")
         init(autoreset = True)
@@ -122,15 +124,15 @@ class GoodBooks:
         # проверка уникальности имени на всякий случай
         ext = pathlib.Path(filename.lower()).suffix
         filename = self.existfile(filename[0:-len(ext)], ext)
-        
+
         source = arch.open(zipItem)
         target = open(filename, "wb")
         with source, target:
             shutil.copyfileobj(source, target)
-        
+
         date_time = time.mktime(date_time + (0, 0, -1))
         os.utime(filename, (date_time, date_time))
-        
+
         return filename
 
     def tryZip(self, filename):
@@ -151,9 +153,8 @@ class GoodBooks:
                 includes[0].filename.lower().endswith(".fb2")):
                 if (newfile := self.tryNewFile(filename, ".zip", ".fb2.zip")):
                     os.rename(filename, newfile)
-            
-        archfile.close()
 
+        archfile.close()
 
     def checkFile(self, filename):
         if self.tryAddCrc(filename):
@@ -172,22 +173,63 @@ class GoodBooks:
             print("Error code:", e.code)
         return False
 
+    def operWithBook(self, book):
+        """
+        Обработка книги
+            Если такая книги уже есть, сравнивается какая более полная.
+        Параметры
+        ---------
+        book : Book
+            Класс книги
+        Возвращает
+        ----------
+        bool
+            True - книга обработана
+            False - книга удалена
+        """
+        if (book.is_dead()):
+            return False
+        book.showBook()
+        if (ind := self.crc32list(book.Crc32())) > -1:
+            # Совпала контрольная сумма с одной из ранее обработанных книг
+            for prevBook in self.filesWithCrc32[ind]: # Просмотрим все книги
+                if book.compareWith(prevBook) == 0:
+                    book.is_dead = True
+                    return False
+        return True
+
     def start(self, directory = "."):
         percent = 0
-        self.files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-        self.countfiles = len(self.files)
-        self.files.sort()
+        #self.files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        self.files = Files(directory)
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
-        for filename in self.files:
-            percent += 1
-            if not (book := Book_Fb2(filename)).is_dead():
-                book.ShowBook()
-                print(book.makeFileName())
+        while( filename := self.files.getNextFile()):
+            if not (book := Book_Fb2(self.files.Directory(), filename)).is_dead():
+                book.showBook()
+                if book.Crc32() in self.crc32list:
+                    book.indexcrc32 = self.crc32list.index(book.Crc32())
+                    #with bookItem in self.filesWithCrc32[ind]:
+                    #    if (not book.is_dead()) and book.compareWith(bookItem) == 0:
+                    #        self.files.fileDelete(book.fileName())
+                    #        book.dead = True
+                    #        print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + book.fullFileName())
+                    #if book.is_dead():
+                    #    del book
+                    #else:
+                    #    self.filesWithCrc32[ind].append(book)
+                elif (not book.checkFileName()):
+                    #book.indexcrc32 = ind
+                    newfile = self.files.newFileIfExist(book.makeName(), book.bookType())
+                    print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл:", newfile)
+                    self.files.fileRename(book.fileName(), newfile)
+                    book.renameFile(newfile)
+                    self.files.setFileDateTime(book.fileName(), book.Born())
+
             else:
                 del book
-            print( "%d" % ((percent) * 100 // self.countfiles), "%", end="\r")
+            print( "%d" % self.files.getPercent(), "%", end="\r")
             #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
-            self.checkFile(filename)
+            #self.checkFile(filename)
         print(colored("Проверка завершена", "green", attrs = ["bold"]))
 
 Library = GoodBooks()

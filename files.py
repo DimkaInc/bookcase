@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 #import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
-import os
+import os, time
 
 class Files():
     """Класс взаимодействия с файлами"""
@@ -23,6 +23,28 @@ class Files():
         self.index = 0
         self.filesList = [f for f in os.listdir(self.directory) if os.path.isfile(os.path.join(self.directory, f))]
         self.filesList.sort()
+        #for f in self.filesList:
+        #    print("><><><", f)
+
+    def Directory(self):
+        """
+        Рабочая диектория
+        Возвращает
+        ----------
+        str
+            Рабочий каталог размещения файлов
+        """
+        return self.directory
+
+    def getPercent(self):
+        """
+        Число просмотренных файлов в % * 100
+        Возвращает
+        ----------
+        int
+            Процентное значение просмотренных файлов
+        """
+        return self.index * 100 // len(self.filesList)
 
     def getFullPath(self, filename):
         """
@@ -77,7 +99,7 @@ class Files():
         filename : str
             Имя файла
         """
-        self.filesList.append(os.path.join(self.directory, fileName))
+        self.filesList.append(fileName)
 
     def newFileIfExist(self, fname, fext):
         """
@@ -95,7 +117,7 @@ class Files():
         """
         num = 0
         newfile = "".join([fname, fext])
-        while os.path.join(self.directory, newfile).lower() in map(str.lower, self.filesList):
+        while newfile.lower() in map(str.lower, self.filesList):
             num += 1
             newfile = "".join([fname, "_(%d)" % num, fext])
         return newfile
@@ -106,9 +128,9 @@ class Files():
         Возврашает
         ----------
         str | False
-            Полный путь к файлу или False если больше файлов нет
+            Имя файла или False если больше файлов нет
         """
-        if self.index < self.filesList.length:
+        if self.index < len(self.filesList):
             self.index += 1
             return self.filesList[self.index - 1]
         return False
@@ -119,12 +141,12 @@ class Files():
         Параметры
         ---------
         filename : str
-            Полный путь к файлу
+            Имя файла
         date_time : datetime
             Дата и время создния файла
         """
-        date_time = time.mktime(date_time + (0, 0, -1))
-        os.utime(filename, (date_time, date_time))
+        date_time = time.mktime(date_time.timetuple())
+        os.utime(self.getFullPath(filename), (date_time, date_time))
 
     def fileRename(self, filename, newfilename):
         """
@@ -136,10 +158,8 @@ class Files():
         newfilename : str
             Новое имя файла
         """
-        fullfilename = os.path.join(self.directory, filename)
-        fullnewfilename = os.path.join(self.directory, newfilename)
-        os.rename(fullfilename, fullnewfilename)
-        self.filelist[self.filelist.index(fullfilename)] = fullnewfilename
+        os.rename(self.getFullPath(filename), self.getFullPath(newfilename))
+        self.filesList[self.filesList.index(filename)] = newfilename
 
     def fileDelete(self, filename):
         """
@@ -147,11 +167,11 @@ class Files():
         Параметры
         ---------
         filename : str
-            Имя файла
+            Имя файла с путём
         """
         fullfilename = os.path.join(self.directory, filename)
-        index = self.filelist.index(fullfilename)
+        index = self.filesList.index(filename)
         os.remove(fullfilename)
-        self.filelist.remove(fullfilename)
+        self.filesList.remove(filename)
         if index < self.index:
             self.index -= 1;

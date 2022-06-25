@@ -8,6 +8,7 @@ from crc32 import Crc32
 class Book:
     """Прототип класса книга."""
     filename = "" # Имя файла
+    directory = "" # Каталог размещения файла
     booktype = "" # Тип книги
     crc32 = ""    # Контрольная сумма
     bookname = "" # название книги
@@ -30,14 +31,17 @@ class Book:
     def __del__(self):
         self.dead = True
 
-    def __init__(self, filename):
+    def __init__(self, directory, filename):
         """
         Заполнение данных о книге из файла
         Параметры
         ---------
+        directory : str
+            Директория размещения файла
         filename : str
             Имя файла с путём
         """
+        self.directory = directory
         self.filename = filename
         self.booktype = pathlib.Path(self.filename).suffix
         self.bookname = self.filename[0:-len(self.booktype)]
@@ -48,6 +52,15 @@ class Book:
         self.crc32 = Crc32().crc32File(self.filename)
         self.dead = False
 
+    def Directory(self):
+        """
+        Директория размещения файла
+        Возвращает
+        ----------
+        str
+            Директория
+        """
+        return self.directory
 
     def fileName(self):
         """
@@ -55,9 +68,19 @@ class Book:
         Возвращает
         ----------
         str
-            Имя файла с путём
+            Имя файла
         """
         return self.filename
+
+    def fullFileName(self):
+        """
+        Полное имя файла с путём
+        Возвращает
+        ----------
+        str
+            Полное имя файла с путём
+        """
+        return(os.path.join(self.directory, self.filename))
 
     def bookName(self):
         """
@@ -136,8 +159,10 @@ class Book:
         print("Название: %s" % self.bookName())
         print("Автор:    %s" % self.Author())
         print("Дата:     %s" % self.Born().strftime("%d.%m.%Y, %H:%M:%S"))
-        print("Файл:     %s" % self.fileName())
+        #print("Каталог:  %s" % self.Directory())
+        print("Файл:     %s" % self.fullFileName())
         print("Размер:   %d B" % self.bookSize())
+        print("CRC32:    %s " % Crc32().hash2crc32(self.Crc32()))
 
     def makeName(self):
         """
@@ -161,14 +186,25 @@ class Book:
 
     def renameFile(self, newFileName):
         """
-        Переименовывает файл книги
+        Переименовывает название файла книги
         Параметры
         ---------
         newFileName : str
             Новое название файла
         """
-        os.rename(self.filename, newFileName)
+        #os.rename(self.filename, newFileName)
         self.filename = newFileName
+
+    def checkFileName(self):
+        """
+        Проверяет соответствие имени файла названию книги
+        Возвращает
+        ----------
+        boolean
+            True - файл соответствует названию
+            False - файл не соответствует названию
+        """
+        return self.filename.find(self.makeName()) > -1
 
     def compareWith(self, book):
         """

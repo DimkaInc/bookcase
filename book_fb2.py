@@ -43,7 +43,7 @@ class Book_Fb2(Book):
         bookDate = docinfo[0].getElementsByTagName("date")[0].attributes["value"].value
         self.born = datetime.datetime.strptime(bookDate, "%Y-%m-%d %H:%M:%S")
 
-    def __init__(self, filename):
+    def __init__(self, directory, filename):
         """
         Создаёт объекта книги
         Параметры
@@ -55,11 +55,11 @@ class Book_Fb2(Book):
         ----------
         В случае неудачи, метод is_dead() вернёт True
         """
-        super(Book_Fb2, self).__init__(filename)
+        super(Book_Fb2, self).__init__(directory, filename)
         if self.booktype != ".fb2":
             self.dead = True
         else:
-            book = minidom.parse(self.filename)
+            book = minidom.parse(self.fullFileName())
             self.fillFromDom(book)
 
     def Lang(self):
