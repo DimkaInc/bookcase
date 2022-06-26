@@ -205,6 +205,7 @@ class GoodBooks:
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
         while( filename := self.files.getNextFile()):
             if not (book := Book_Fb2(self.files.Directory(), filename)).is_dead():
+                print("Файл без версии: %s" % self.files.clearVersion(book.fileName()[0:-len(book.bookType())]))
                 book.showBook()
                 if book.Crc32() in self.crc32list:
                     book.indexcrc32 = self.crc32list.index(book.Crc32())

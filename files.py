@@ -91,6 +91,30 @@ class Files():
         """
         return fullpath.replace("\\", os.path.sep)
 
+    def clearVersion(self, nameOfFile):
+        """
+        Возвращает имя файла без версии
+        Параметры
+        ---------
+        nameOfFile : str
+            Имя файла без расширения
+
+        Возвращает
+        ----------
+        str
+            Имя файла без версии
+        """
+        ind = len(nameOfFile) - 1
+        if not nameOfFile[ind] in [")"]:
+            return nameOfFile
+        verList = [str(x) for x in [*range(9)]] + ["(", ")", " ", "_"]
+        while ind > 0 and nameOfFile[ind] in verList:
+            ind -= 1
+        if ind == len(nameOfFile) - 1:
+            return nameOfFile
+        return nameOfFile[0:ind + 1]
+
+
     def addFile(self, fileName):
         """
         Добавление файла в конец списка файлов
