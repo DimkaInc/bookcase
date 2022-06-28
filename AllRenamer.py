@@ -229,7 +229,7 @@ class GoodBooks:
                     if books[ind] != None:
                         res = book.compareWith(books[ind])
                         if res == 0:
-                            print(colored("[ДУБЛИКАТ (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(filename))
+                            print(colored("[ДУБЛИКАТ (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
                             continue
                         if res == 10: # разные
@@ -239,13 +239,13 @@ class GoodBooks:
                             books.append(book)
                             continue
                         if res < 0: # вторая полнее
-                            print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(filename))
+                            print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
                             continue
                         oldFile = dfiles[ind].get("fileName")
-                        print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(oldFile))
+                        print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(oldFile))
                         self.fileList.fileDelete(oldFile)
-                        print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.filesList.getFullPath(filename))
+                        print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.fileList.getFullPath(filename))
                         self.fileList.fileRename(filename, oldFile)
                         book.filename = oldFile
                         dfiles[ind] = dfile
