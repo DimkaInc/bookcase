@@ -262,6 +262,7 @@ class GoodBooks:
                     self.fileList.fileDelete(filename)
                     continue
                 files.append(shortName)
+                dfiles.append(dfile)
                 crc32List.append(crc)
                 books.append(book)
             # Если книги одинаковые, удалить ту, которая занимает меньше места и назначить самое короткое имя оставшейся
