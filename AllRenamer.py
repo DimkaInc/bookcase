@@ -206,6 +206,7 @@ class GoodBooks:
         files = []
         crc32List = []
         books = []
+        dfiles = []
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
         while( filename := self.fileList.getNextFile()):
             # Необходимо вычленить файлы, которые одинаково называются без версий
@@ -220,6 +221,7 @@ class GoodBooks:
                 ind = files.index(shortName)
                 if crc == crc32List[ind]:
                     # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
+                    print(colored("[ДУБЛИКАТ (имя)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(filename))
                     self.fileList.fileDelete(filename)
                     continue
                 # Если файлы разные - проверить книги
@@ -227,8 +229,33 @@ class GoodBooks:
                     if books[ind] != None:
                         res = book.compareWith(books[ind])
                         if res == 0:
+                            print(colored("[ДУБЛИКАТ (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
                             continue
+                        if res == 10: # разные
+                            files.append(shortName)
+                            dfiles.append(dfile)
+                            crc32List.append(crc)
+                            books.append(book)
+                            continue
+                        if res < 0: # вторая полнее
+                            print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(filename))
+                            self.fileList.fileDelete(filename)
+                            continue
+                        oldFile = dfiles[ind].get("fileName")
+                        print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(oldFile))
+                        self.fileList.fileDelete(oldFile)
+                        print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.filesList.getFullPath(filename))
+                        self.fileList.fileRename(filename, oldFile)
+                        book.filename = oldFile
+                        dfiles[ind] = dfile
+                        crc32List[ind] = crc
+                        books[ind] = book
+                        continue
+                files.append(shortName)
+                dfiles.append(dfile)
+                crc32List.append(crc)
+                books.append(book)
             else:
                 if crc in crc32List:
                     #ind = crc32List.index(crc)

@@ -243,7 +243,7 @@ class Files():
         filename : str
             Имя файла с путём
         """
-        fullfilename = os.path.join(self.directory, filename)
+        fullfilename = self.getFullPath(filename)
         index = self.filesList.index(filename)
         os.remove(fullfilename)
         self.filesList.remove(filename)
