@@ -107,10 +107,13 @@ class Files():
         ind = len(nameOfFile) - 1
         if ind < 0 or not nameOfFile[ind] in [")"]:
             return nameOfFile
-        verList = [str(x) for x in [*range(9)]] + ["(", ")", " ", "_"]
+        ind -= 1
+        verList = [str(x) for x in list(range(10))]
         while ind > 0 and nameOfFile[ind] in verList:
             ind -= 1
-        if ind == len(nameOfFile) - 1:
+        while ind > 0 and nameOfFile[ind] in ["_", "("]:
+            ind -= 1
+        if ind == len(nameOfFile) - 2:
             return nameOfFile
         return nameOfFile[0:ind + 1]
 

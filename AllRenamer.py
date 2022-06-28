@@ -214,6 +214,9 @@ class GoodBooks:
             shortName = dfile.get("clearFileName") + dfile.get("extension")
             crc = Crc32().crc32File(filename)
             book = Book_Fb2(dfile.get("directory"), filename)
+            #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Краткое имя файла:", shortName)
+            #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "CRC32:", crc)
+            #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Book:", book.is_dead())
             if book.is_dead():
                 del book
                 book = None
@@ -228,9 +231,9 @@ class GoodBooks:
                 if book != None:
                     if books[ind] != None:
                         res = book.compareWith(books[ind])
-                        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Сравниваю:", book.bookName())
-                        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "и:", books[ind].bookName())
-                        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Результат:", res)
+                        #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Сравниваю:", book.bookName())
+                        #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "и:", books[ind].bookName())
+                        #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Результат:", res)
                         if res == 0:
                             print(colored("[ДУБЛИКАТ (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
@@ -271,30 +274,30 @@ class GoodBooks:
                 books.append(book)
             # Если книги одинаковые, удалить ту, которая занимает меньше места и назначить самое короткое имя оставшейся
             # для книг .fb2.zip помнить информацию о самой книге, и сравнивать с книгами .fb2
-            if not (book := Book_Fb2(self.fileList.Directory(), filename)).is_dead():
-                fileName = self.fileList.clearVersion(book.fileName()[0:-len(book.bookType())]) + book.bookType()
-                book.showBook()
-                if book.Crc32() in self.crc32list:
-                    book.indexcrc32 = self.crc32list.index(book.Crc32())
-                    #with bookItem in self.filesWithCrc32[ind]:
-                    #    if (not book.is_dead()) and book.compareWith(bookItem) == 0:
-                    #        self.files.fileDelete(book.fileName())
-                    #        book.dead = True
-                    #        print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + book.fullFileName())
-                    #if book.is_dead():
-                    #    del book
-                    #else:
-                    #    self.filesWithCrc32[ind].append(book)
-                elif (not book.checkFileName()):
-                    #book.indexcrc32 = ind
-                    newfile = self.fileList.newFileIfExist(book.makeName(), book.bookType())
-                    print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл:", newfile)
-                    self.fileList.fileRename(book.fileName(), newfile)
-                    book.renameFile(newfile)
-                    self.fileList.setFileDateTime(book.fileName(), book.Born())
+            #if not (book := Book_Fb2(self.fileList.Directory(), filename)).is_dead():
+            #    fileName = self.fileList.clearVersion(book.fileName()[0:-len(book.bookType())]) + book.bookType()
+            #    book.showBook()
+            #    if book.Crc32() in self.crc32list:
+            #        book.indexcrc32 = self.crc32list.index(book.Crc32())
+            #        #with bookItem in self.filesWithCrc32[ind]:
+            #        #    if (not book.is_dead()) and book.compareWith(bookItem) == 0:
+            #        #        self.files.fileDelete(book.fileName())
+            #        #        book.dead = True
+            #        #        print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + book.fullFileName())
+            #        #if book.is_dead():
+            #        #    del book
+            #        #else:
+            #        #    self.filesWithCrc32[ind].append(book)
+            #    elif (not book.checkFileName()):
+            #        #book.indexcrc32 = ind
+            #        newfile = self.fileList.newFileIfExist(book.makeName(), book.bookType())
+            #        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл:", newfile)
+            #        self.fileList.fileRename(book.fileName(), newfile)
+            #        book.renameFile(newfile)
+            #        self.fileList.setFileDateTime(book.fileName(), book.Born())
 
-            else:
-                del book
+            #else:
+            #    del book
             print( "%d" % self.fileList.getPercent(), "%", end="\r")
             #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
             #self.checkFile(filename)
