@@ -221,7 +221,7 @@ class GoodBooks:
                 ind = files.index(shortName)
                 if crc == crc32List[ind]:
                     # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
-                    print(colored("[ДУБЛИКАТ (имя)]", "red", attrs = ["bold"]), "Удаляю файл:", self.filesList.getFullPath(filename))
+                    print(colored("[ДУБЛИКАТ (имя)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                     self.fileList.fileDelete(filename)
                     continue
                 # Если файлы разные - проверить книги
