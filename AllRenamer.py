@@ -242,11 +242,12 @@ class GoodBooks:
                             print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
                             continue
-                        oldFile = dfiles[ind].get("fileName")
+                        oldFile = dfiles[ind].get("fileName") + dfiles[ind].get("extension")
                         print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(oldFile))
                         self.fileList.fileDelete(oldFile)
                         print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.fileList.getFullPath(filename))
                         self.fileList.fileRename(filename, oldFile)
+                        dfile.update({"fileName" : dfiles[ind].get("fileName")})
                         book.filename = oldFile
                         dfiles[ind] = dfile
                         crc32List[ind] = crc
