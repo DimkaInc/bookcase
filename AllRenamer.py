@@ -228,6 +228,9 @@ class GoodBooks:
                 if book != None:
                     if books[ind] != None:
                         res = book.compareWith(books[ind])
+                        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Сравниваю:", book.bookName())
+                        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "и:", books[ind].bookName())
+                        print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Результат:", res)
                         if res == 0:
                             print(colored("[ДУБЛИКАТ (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
