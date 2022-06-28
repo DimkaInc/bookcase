@@ -38,7 +38,7 @@ class GoodBooks:
         sys.stdout.reconfigure(encoding = "utf-8")
         init(autoreset = True)
         now = datetime.datetime.now()
-        self.filelist = Files(".")
+        #self.filelist = Files(".")
         print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
           colored("(v" + self.version + ")", "red", attrs = ["bold"]))
         print(colored("©", "yellow", attrs = ["bold"]), 
@@ -198,14 +198,34 @@ class GoodBooks:
                     return False
         return True
 
+
     def start(self, directory = "."):
         percent = 0
         #self.files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-        self.files = Files(directory)
+        self.fileList = Files(directory)
+        files = []
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
-        while( filename := self.files.getNextFile()):
-            if not (book := Book_Fb2(self.files.Directory(), filename)).is_dead():
-                print("Файл без версии: %s" % self.files.clearVersion(book.fileName()[0:-len(book.bookType())]))
+        while( filename := self.fileList.getNextFile()):
+            # Необходимо вычленить файлы, которые одинаково называются без версий
+            dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
+            shortName = dfile.get("clearFileName")+dfile.get("extension")
+            if shortName in files:
+                ind = files.index(shortName)
+                crc = Crc32().crc32File(filename)
+                if crc == crc32list[ind]:
+                    # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
+                    self.fileList.fileDelete(filename)
+                    continue
+                # Если файлы разные - проверить книги
+                book = Book_Fb2(self.files.Directory(), filename)
+                if book.is_dead():
+                    del book
+                else:
+                    res = book.compareWith()
+            # Если книги одинаковые, удалить ту, которая занимает меньше места и назначить самое короткое имя оставшейся
+            # для книг .fb2.zip помнить информацию о самой книге, и сравнивать с книгами .fb2
+            if not (book := Book_Fb2(self.fileList.Directory(), filename)).is_dead():
+                fileName = self.fileList.clearVersion(book.fileName()[0:-len(book.bookType())]) + book.bookType()
                 book.showBook()
                 if book.Crc32() in self.crc32list:
                     book.indexcrc32 = self.crc32list.index(book.Crc32())
@@ -220,15 +240,15 @@ class GoodBooks:
                     #    self.filesWithCrc32[ind].append(book)
                 elif (not book.checkFileName()):
                     #book.indexcrc32 = ind
-                    newfile = self.files.newFileIfExist(book.makeName(), book.bookType())
+                    newfile = self.fileList.newFileIfExist(book.makeName(), book.bookType())
                     print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл:", newfile)
-                    self.files.fileRename(book.fileName(), newfile)
+                    self.fileList.fileRename(book.fileName(), newfile)
                     book.renameFile(newfile)
-                    self.files.setFileDateTime(book.fileName(), book.Born())
+                    self.fileList.setFileDateTime(book.fileName(), book.Born())
 
             else:
                 del book
-            print( "%d" % self.files.getPercent(), "%", end="\r")
+            print( "%d" % self.fileList.getPercent(), "%", end="\r")
             #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
             #self.checkFile(filename)
         print(colored("Проверка завершена", "green", attrs = ["bold"]))

@@ -1,8 +1,8 @@
 #!/bin/python3
 
 # -*- coding: utf-8 -*-
-#import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
-import os, time
+#import os, sys, shutil, zipfile, datetime, zlib, time
+import os, time, pathlib
 
 class Files():
     """Класс взаимодействия с файлами"""
@@ -102,10 +102,10 @@ class Files():
         Возвращает
         ----------
         str
-            Имя файла без версии
+            Имя файла без версии и расширения
         """
         ind = len(nameOfFile) - 1
-        if not nameOfFile[ind] in [")"]:
+        if ind < 0 or not nameOfFile[ind] in [")"]:
             return nameOfFile
         verList = [str(x) for x in [*range(9)]] + ["(", ")", " ", "_"]
         while ind > 0 and nameOfFile[ind] in verList:
@@ -114,6 +114,56 @@ class Files():
             return nameOfFile
         return nameOfFile[0:ind + 1]
 
+    def getFileExt(self, filename):
+        """
+        Возвращает расширение файла
+        Параметры
+        ---------
+        filename : str
+            Имя файла с расширением
+
+        Возвращает
+        ----------
+        str
+            расширение файла (может быть двойное)
+        """
+        ext = pathlib.Path(filename).suffix
+        if ext in [".zip", ".rar", ".gz"]:
+            filename = filename[0:-len(ext)]
+            if filename.rfind(".") > -1:
+                eend = pathlib.Path(filename).suffix
+                if eend in [".fb2", ".tar", ".txt", ".rtf"]:
+                    ext = eend + ext
+        return ext
+
+    def getFileStruct(self, fullPath):
+        """
+        Разбивает файл на составляющие элементы
+        Параметры
+        ---------
+        fullPath : str
+            Полное имя файла с путём
+
+        Возвращает
+        ----------
+        dict
+            Словарь со структурой файла
+            "directory" : str
+                Каталог размещения файла
+            "fileName" : str
+                Имя файла без расширения
+            "clearFileName" : str
+                Имя файла без версии и расширения
+            "extension" : str
+                Расширение (тип) файла
+        """
+        res = {}
+        res.update({"extension": self.getFileExt(fullPath)})
+        filename = self.getOnlyFile(fullPath)
+        res.update({"fileName": filename[0:-len(res.get("extension"))]})
+        res.update({"directory": os.path.dirname(fullPath)})
+        res.update({"clearFileName": self.clearVersion(res.get("fileName"))})
+        return res
 
     def addFile(self, fileName):
         """
