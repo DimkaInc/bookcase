@@ -122,7 +122,7 @@ class Book:
         str
             Автор
         """
-        return self.author # Автор
+        return self.author
 
     def bookSize(self):
         """
@@ -217,7 +217,6 @@ class Book:
         newFileName : str
             Новое название файла
         """
-        #os.rename(self.filename, newFileName)
         self.filename = newFileName
 
     def checkFileName(self):

@@ -1,7 +1,6 @@
 #!/bin/python3
 
 # -*- coding: utf-8 -*-
-#import os, sys, shutil, zipfile, , zlib, pathlib, time
 import datetime
 from dateutil import parser
 from book import Book
@@ -50,7 +49,6 @@ class Book_Fb2(Book):
             self.author = authorFirst
 
         self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
-        print(self.bookname)
         try:
             sequenceTag = titleinfo[0].getElementsByTagName("sequence")[0]
             self.sequenceName = sequenceTag.attributes['name'].value
@@ -67,9 +65,7 @@ class Book_Fb2(Book):
 
         try:
             bookDate = docinfo[0].getElementsByTagName("date")[0].attributes["value"].value
-            #print()
             self.born = parser.parse(bookDate)
-            #datetime.datetime.strptime(bookDate, "%Y-%m-%d %H:%M:%S")
         except:
             self.born = datetime.datetime.fromtimestamp(self.born)
 

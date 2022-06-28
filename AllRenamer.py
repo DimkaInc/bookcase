@@ -248,7 +248,7 @@ class GoodBooks:
                         print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.fileList.getFullPath(filename))
                         self.fileList.fileRename(filename, oldFile)
                         dfile.update({"fileName" : dfiles[ind].get("fileName")})
-                        book.filename = oldFile
+                        book.renameFile(oldFile)
                         dfiles[ind] = dfile
                         crc32List[ind] = crc
                         books[ind] = book
