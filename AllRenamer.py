@@ -204,24 +204,39 @@ class GoodBooks:
         #self.files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
         self.fileList = Files(directory)
         files = []
+        crc32List = []
+        books = []
         print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
         while( filename := self.fileList.getNextFile()):
             # Необходимо вычленить файлы, которые одинаково называются без версий
             dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
-            shortName = dfile.get("clearFileName")+dfile.get("extension")
+            shortName = dfile.get("clearFileName") + dfile.get("extension")
+            crc = Crc32().crc32File(filename)
+            book = Book_Fb2(dfile.get("directory"), filename)
+            if book.is_dead():
+                del book
+                book = None
             if shortName in files:
                 ind = files.index(shortName)
-                crc = Crc32().crc32File(filename)
-                if crc == crc32list[ind]:
+                if crc == crc32List[ind]:
                     # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
                     self.fileList.fileDelete(filename)
                     continue
                 # Если файлы разные - проверить книги
-                book = Book_Fb2(self.files.Directory(), filename)
-                if book.is_dead():
-                    del book
-                else:
-                    res = book.compareWith()
+                if book != None:
+                    if books[ind] != None:
+                        res = book.compareWith(books[ind])
+                        if res == 0:
+                            self.fileList.fileDelete(filename)
+                            continue
+            else:
+                if crc in crc32List:
+                    #ind = crc32List.index(crc)
+                    self.fileList.fileDelete(filename)
+                    continue
+                files.append(shortName)
+                crc32List.append(crc)
+                books.append(book)
             # Если книги одинаковые, удалить ту, которая занимает меньше места и назначить самое короткое имя оставшейся
             # для книг .fb2.zip помнить информацию о самой книге, и сравнивать с книгами .fb2
             if not (book := Book_Fb2(self.fileList.Directory(), filename)).is_dead():

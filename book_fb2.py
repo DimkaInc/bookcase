@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 #import os, sys, shutil, zipfile, , zlib, pathlib, time
 import datetime
+from dateutil import parser
 from book import Book
 from xml.dom import minidom
 
@@ -25,23 +26,52 @@ class Book_Fb2(Book):
         """
         description = book.getElementsByTagName("description")
         titleinfo = description[0].getElementsByTagName("title-info")
-        self.lang = titleinfo[0].getElementsByTagName("lang")[0].childNodes[0].nodeValue
+        try:
+            self.lang = titleinfo[0].getElementsByTagName("lang")[0].childNodes[0].nodeValue
+        except:
+            self.lang = ""
 
-        authorFirst = titleinfo[0].getElementsByTagName("first-name")[0].childNodes[0].nodeValue
-        authorLast = titleinfo[0].getElementsByTagName("last-name")[0].childNodes[0].nodeValue
-        self.author = "%s %s" % (authorFirst, authorLast)
+        try:
+            authorFirst = titleinfo[0].getElementsByTagName("first-name")[0].childNodes[0].nodeValue
+        except:
+            authorFirst = ""
+        try:
+            authorLast = titleinfo[0].getElementsByTagName("last-name")[0].childNodes[0].nodeValue
+        except:
+            authorLast = ""
+        if authorFirst != "" and authorLast != "":
+            self.author = "%s %s" % (authorFirst, authorLast)
+        elif authorFirst != "":
+            if authorLast != "":
+                self.author = "Неизвестен"
+            else:
+                self.author = authorLast
+        else:
+            self.author = authorFirst
 
         self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
-
-        sequenceTag = titleinfo[0].getElementsByTagName("sequence")[0]
-        self.sequenceName = sequenceTag.attributes['name'].value
-        self.sequenceNumber = sequenceTag.attributes['number'].value
+        print(self.bookname)
+        try:
+            sequenceTag = titleinfo[0].getElementsByTagName("sequence")[0]
+            self.sequenceName = sequenceTag.attributes['name'].value
+            self.sequenceNumber = sequenceTag.attributes['number'].value
+        except:
+            self.sequenceName = ""
+            self.sequenceNumber = ""
 
         docinfo = description[0].getElementsByTagName("document-info")
-        self.bookId = docinfo[0].getElementsByTagName("id")[0].childNodes[0].nodeValue
+        try:
+            self.bookId = docinfo[0].getElementsByTagName("id")[0].childNodes[0].nodeValue
+        except:
+            self.bookId = ""
 
-        bookDate = docinfo[0].getElementsByTagName("date")[0].attributes["value"].value
-        self.born = datetime.datetime.strptime(bookDate, "%Y-%m-%d %H:%M:%S")
+        try:
+            bookDate = docinfo[0].getElementsByTagName("date")[0].attributes["value"].value
+            #print()
+            self.born = parser.parse(bookDate)
+            #datetime.datetime.strptime(bookDate, "%Y-%m-%d %H:%M:%S")
+        except:
+            self.born = datetime.datetime.fromtimestamp(self.born)
 
     def __init__(self, directory, filename):
         """
@@ -59,8 +89,13 @@ class Book_Fb2(Book):
         if self.booktype != ".fb2":
             self.dead = True
         else:
-            book = minidom.parse(self.fullFileName())
-            self.fillFromDom(book)
+            #data = datetime.datetime.fromtimestamp(os.path.getctime(self.fullFileName()))
+            try:
+                book = minidom.parse(self.fullFileName())
+            except:
+                self.dead = True
+            if not self.is_dead():
+                self.fillFromDom(book)
 
     def Lang(self):
         """
@@ -80,6 +115,8 @@ class Book_Fb2(Book):
         str
             Серия вида: Название серии [том]
         """
+        if self.sequenceNumber == "":
+            return ""
         return "%s [%s]" % (self.sequenceName, self.sequenceNumber) # Серия книги
 
     def BookId(self):
@@ -110,7 +147,7 @@ class Book_Fb2(Book):
             Название книги для файла
         """
         if (self.sequenceNumber != ""):
-            return ("%s-%s" % (self.Sequence(), super(Book_Fb2, self).makeName())).replace(".", "").replace(" ", "_")
+            return self.replaces("%s-%s" % (self.Sequence(), super(Book_Fb2, self).makeName()), self.chars2underline, "_")
         return super(Book_Fb2, self).makeName()
 
     def compareWith(self, book):

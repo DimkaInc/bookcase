@@ -7,6 +7,8 @@ from crc32 import Crc32
 
 class Book:
     """Прототип класса книга."""
+    chars2underline = [" ", ":", "|", "+", "<", ">", "__"]
+    chars2none = [".", ",", ";", '"', "'", "?", "*"]
     filename = "" # Имя файла
     directory = "" # Каталог размещения файла
     booktype = "" # Тип книги
@@ -164,6 +166,27 @@ class Book:
         print("Размер:   %d B" % self.bookSize())
         print("CRC32:    %s " % Crc32().hash2crc32(self.Crc32()))
 
+    def replaces(self, source, fromList, toStr):
+        """
+        Замена набора строк на строку
+        Параметры
+        ---------
+        source : str
+            Исходная строка
+        fromList : list of str
+            Список строк, подлежащих замене
+        toStr : str
+            Строка, на кторую заменяются искомые строки
+
+        Возвращает
+        ----------
+        str
+            изменённая строка
+        """
+        for st in fromList:
+            source = source.replace(st, toStr)
+        return source
+
     def makeName(self):
         """
         Формирование названия книги для файла в формате "Автор-Название_книги"
@@ -172,7 +195,9 @@ class Book:
         str
             Название книги
         """
-        return ("%s-%s" % (self.Author(), self.bookName())).replace(" ", "_").replace(".", "")
+        name = self.replaces(self.bookName(), self.chars2underline, "_")
+        name = self.replaces(name, self.chars2none, "")
+        return ("%s-%s" % (self.Author(), name)).replace("__", "_")
 
     def makeFileName(self):
         """
@@ -182,7 +207,7 @@ class Book:
         str
             Название книги с расширением
         """
-        return ("%s%s" % (self.makeName(), self.bookType())).replace(" ", "_")
+        return self.replaces("%s%s" % (self.makeName(), self.bookType()), self.chars2underline, "_")
 
     def renameFile(self, newFileName):
         """
