@@ -46,32 +46,6 @@ class GoodBooks:
           colored(self.email, "cyan", attrs = ["bold", "underline"]), "\n")
 
 
-    #def existfile(self, nfile, ext):
-    #    """Генерация имени фала, если совпадает с существующим"""
-    #    num = 0
-    #    newfile = nfile + ext
-    #    while os.path.exists(newfile):
-    #        num += 1
-    #        newfile = nfile + "_(%d)%s" % (num, ext)
-    #    return newfile
-
-    def tryAddCrc(self, filename):
-        """Проверка на присутствие хеша"""
-        fcrc32 = Crc32().crc32File(filename)
-        if fcrc32 in self.crc32list:
-            return False
-        self.crc32list.append(fcrc32)
-        return True
-
-    def tryNewFile(self, filename, extmask, newext):
-        """
-        Если файл имеет указанное окончание, 
-        то возвращается новое свободное имя файла или False
-        """
-        if not filename.lower().endswith(extmask):
-            return False
-        return self.filelist.newFileIfExist(filename[0:-len(extmask)], newext)
-
     def tryfb2epub(self, filename):
         newfile = self.tryNewFile(filename, ".fb2.epub", ".epub")
         if not newfile:
@@ -80,24 +54,6 @@ class GoodBooks:
         print(colored("[EPUB]", "yellow", attrs = ["bold"]), "Файл переименован: " +
             newfile)
         return True
-
-    def tryfb2(self, filename):
-        newfile = self.tryNewFile(filename, ".fb2", ".fb2.zip")
-        #print(colored("DEBUG", "magenta", attrs = ["bold"]), newfile)
-        if not newfile:
-            return False
-        archfile = zipfile.ZipFile(newfile, "w")
-        archfile.write(filename, compress_type = zipfile.ZIP_DEFLATED)
-        archfile.close()
-        os.remove(filename)
-        self.appendFile(newfile)
-        print(colored("[FB2.ZIP]", "green", attrs = ["bold"]), "Файл сжат: " +
-            newfile)
-        return True
-
-    def appendFile(self, filename):
-        self.files.append(filename)
-        self.countfiles += 1
 
     def decodeZipFile(self, zipItem, zipFile=""):
         result = ""
@@ -224,7 +180,7 @@ class GoodBooks:
                 ind = files.index(shortName)
                 if crc == crc32List[ind]:
                     # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
-                    print(colored("[ДУБЛИКАТ (имя)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
+                    print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                     self.fileList.fileDelete(filename)
                     continue
                 # Если файлы разные - проверить книги
@@ -235,7 +191,7 @@ class GoodBooks:
                         #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "и:", books[ind].bookName())
                         #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Результат:", res)
                         if res == 0:
-                            print(colored("[ДУБЛИКАТ (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
+                            print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
                             continue
                         if res == 10: # разные
@@ -245,11 +201,11 @@ class GoodBooks:
                             books.append(book)
                             continue
                         if res < 0: # вторая полнее
-                            print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
+                            print(colored("[Предыдущая версия]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
                             self.fileList.fileDelete(filename)
                             continue
                         oldFile = dfiles[ind].get("fileName") + dfiles[ind].get("extension")
-                        print(colored("[Предыдущая версия (книга)]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(oldFile))
+                        print(colored("[Предыдущая версия]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(oldFile))
                         self.fileList.fileDelete(oldFile)
                         print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.fileList.getFullPath(filename))
                         self.fileList.fileRename(filename, oldFile)

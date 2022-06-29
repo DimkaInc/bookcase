@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 #import os, sys, shutil, zipfile, datetime, zlib, time
 import os, time, pathlib
+from crc32 import Crc32
 
 class Files():
     """Класс взаимодействия с файлами"""
@@ -159,6 +160,8 @@ class Files():
                 Имя файла без версии и расширения
             "extension" : str
                 Расширение (тип) файла
+            "crc32" : str
+                Контрольная сумма файла
         """
         res = {}
         res.update({"extension": self.getFileExt(fullPath)})
@@ -166,6 +169,7 @@ class Files():
         res.update({"fileName": filename[0:-len(res.get("extension"))]})
         res.update({"directory": os.path.dirname(fullPath)})
         res.update({"clearFileName": self.clearVersion(res.get("fileName"))})
+        res.update({"crc32": Crc32().crc32File(fullPath)})
         return res
 
     def addFile(self, fileName):
