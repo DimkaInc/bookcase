@@ -155,6 +155,30 @@ class GoodBooks:
                     return False
         return True
 
+    def takeBook(self, dfile):
+        """
+        возвращает объект книги
+        Параметры
+        ---------
+        dfile : dict
+            Струкурированная запись о файле
+
+        Возвращает
+        ----------
+        Book
+            Объект книги или None
+        """
+        book = None
+        if (ext := dfile.get("extension")) == ".fb2":
+            book = Book_Fb2(dfile)
+        elif ext == ".zip":
+            print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "В разработке для типа файла: '%s'" % ext)
+        else:
+            print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
+        if book != None and book.is_dead():
+            del book
+            book = None
+        return book
 
     def start(self, directory = "."):
         percent = 0
@@ -168,17 +192,11 @@ class GoodBooks:
         while( filename := self.fileList.getNextFile()):
             # Необходимо вычленить файлы, которые одинаково называются без версий
             dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
+            if dfile.get("extension") in ["", ".py", ".RD", ".cfg", ".cmd"]:
+                continue
             shortName = dfile.get("clearFileName") + dfile.get("extension")
             crc = dfile.get("crc32")
-            book = None
-            if (ext := dfile.get("extension")) == ".fb2":
-                book = Book_Fb2(dfile.get("directory"), filename)
-            elif ext in ["", ".py", ".RD", ".cfg", ".cmd"]:
-                continue
-            elif ext == ".zip":
-                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "В разработке для типа файла: '%s'" % ext)
-            else:
-                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
+            book = self.takeBook(dfile)
             #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Краткое имя файла:", shortName)
             #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "CRC32:", crc)
             #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Book:", book.is_dead())

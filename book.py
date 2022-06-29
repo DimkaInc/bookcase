@@ -54,6 +54,25 @@ class Book:
         self.crc32 = Crc32().crc32File(self.filename)
         self.dead = False
 
+    def __init__(self, dfile):
+        """
+        Заполнение данных о книге из файла
+        Параметры
+        ---------
+        dfile : dict
+            структурированные данные о файле
+        """
+        self.directory = dfile.get("directory")
+        self.filename = dfile.get("fileName") + dfile.get("extension")
+        self.booktype = dfile.get("extension")
+        self.bookname = dfile.get("filename")
+        stat = os.stat(os.path.join(self.directory, self.filename))
+        self.booksize = stat.st_size
+        self.born = stat.st_atime
+        self.change = stat.st_mtime
+        self.crc32 = dfile.get("crc32")
+        self.dead = False
+
     def Directory(self):
         """
         Директория размещения файла

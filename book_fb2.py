@@ -93,6 +93,30 @@ class Book_Fb2(Book):
             if not self.is_dead():
                 self.fillFromDom(book)
 
+    def __init__(self, dfile):
+        """
+        Создаёт объекта книги
+        Параметры
+        ---------
+        dfile : dict
+            Структурированные данные о файле
+
+        Возвращает
+        ----------
+        В случае неудачи, метод is_dead() вернёт True
+        """
+        super(Book_Fb2, self).__init__(dfile)
+        if self.booktype != ".fb2":
+            self.dead = True
+        else:
+            #data = datetime.datetime.fromtimestamp(os.path.getctime(self.fullFileName()))
+            try:
+                book = minidom.parse(self.fullFileName())
+            except:
+                self.dead = True
+            if not self.is_dead():
+                self.fillFromDom(book)
+
     def Lang(self):
         """
         Язык книги
