@@ -132,7 +132,7 @@ class Files():
             расширение файла (может быть двойное)
         """
         ext = pathlib.Path(filename).suffix
-        if ext in [".zip", ".rar", ".gz"]:
+        if ext in [".zip", ".rar", ".gz", ".epub"]:
             filename = filename[0:-len(ext)]
             if filename.rfind(".") > -1:
                 eend = pathlib.Path(filename).suffix

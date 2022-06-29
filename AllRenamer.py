@@ -12,6 +12,7 @@
 
 # -*- coding: utf-8 -*-
 import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
+from platform import python_version
 from termcolor import colored
 from colorama import init
 from xml.dom import minidom
@@ -168,12 +169,20 @@ class GoodBooks:
             # Необходимо вычленить файлы, которые одинаково называются без версий
             dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
             shortName = dfile.get("clearFileName") + dfile.get("extension")
-            crc = Crc32().crc32File(filename)
-            book = Book_Fb2(dfile.get("directory"), filename)
+            crc = dfile.get("crc32")
+            book = None
+            if (ext := dfile.get("extension")) == ".fb2":
+                book = Book_Fb2(dfile.get("directory"), filename)
+            elif ext in ["", ".py", ".RD", ".cfg", ".cmd"]:
+                continue
+            elif ext == ".zip":
+                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "В разработке для типа файла: '%s'" % ext)
+            else:
+                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
             #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Краткое имя файла:", shortName)
             #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "CRC32:", crc)
             #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Book:", book.is_dead())
-            if book.is_dead():
+            if book != None and book.is_dead():
                 del book
                 book = None
             if shortName in files:
