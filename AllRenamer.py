@@ -153,10 +153,12 @@ class GoodBooks:
             archItems = arch.infolist()
             print(colored("[ZIP]", "white", attrs = ["bold", "dark"]), "Распаковка файла: '%s%s'" % (dfile.get("fileName"), ext))
             for item in archItems:
+                if item.is_dir():
+                    continue
                 date_time = item.date_time
                 ditem = self.fileList.getFileStruct(os.path.join(dfile.get("directory"),
                     self.decodeZipFile(item)))
-                saveFile = os.path.join(ditem.get("directory"), self.fileList.newFileIfExist(
+                saveFile = os.path.join(dfile.get("directory"), self.fileList.newFileIfExist(
                     ditem.get("fileName"), ditem.get("extension")))
                 source = arch.open(item)
                 target = open(saveFile, "wb")
