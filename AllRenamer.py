@@ -202,11 +202,11 @@ class GoodBooks:
             if book != None:
                 # переименование ниги, если отличается от реального
                 newName = book.makeFileName()
-                book.showBook()
-                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Старый файл:", book.fileName())
-                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл:", newName)
+                #book.showBook()
                 if newName != shortName:
+                    #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Старый файл:", book.fileName())
                     newFile = self.fileList.newFileIfExist(newName[0:-len(dfile.get("extension"))], dfile.get("extension"))
+                    #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл: ", newFile)
                     self.fileList.fileRename(book.fileName(), newFile)
                     book.filename = newFile
                     filename = newFile

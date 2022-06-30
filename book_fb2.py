@@ -35,18 +35,20 @@ class Book_Fb2(Book):
         except:
             authorFirst = ""
         try:
+            authorMiddle = titleinfo[0].getElementsByTagName("middle-name")[0].childNodes[0].nodeValue
+        except:
+            authorMiddle = ""
+        if (ind := authorMiddle.find(" ")) > 0:
+            authorMiddle = authorMiddle[0:ind]
+        try:
             authorLast = titleinfo[0].getElementsByTagName("last-name")[0].childNodes[0].nodeValue
         except:
             authorLast = ""
-        if authorFirst != "" and authorLast != "":
-            self.author = "%s %s" % (authorFirst, authorLast)
-        elif authorFirst == "":
-            if authorLast == "":
-                self.author = "Неизвестен"
-            else:
-                self.author = authorLast
+        author = ("%s %s %s" % (authorFirst, authorMiddle, authorLast)).replace("  ", " ").strip()
+        if author == "":
+            self.author = "Неизвестен"
         else:
-            self.author = authorFirst
+            self.author = author
 
         self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
         try:
