@@ -197,6 +197,20 @@ class GoodBooks:
             if book != None and book.is_dead():
                 del book
                 book = None
+            if book != None:
+                # переименование ниги, если отличается от реального
+                newName = book.makeFileName()
+                book.showBook()
+                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Старый файл:", book.fileName())
+                print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл:", newName)
+                if newName != shortName:
+                    newFile = self.fileList.newFileIfExist(newName[0:-len(dfile.get("extension"))], dfile.get("extension"))
+                    self.fileList.fileRename(book.fileName(), newFile)
+                    book.filename = newFile
+                    filename = newFile
+                    dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
+                    shortName = dfile.get("clearFileName") + dfile.get("extension")
+
             if shortName in files:
                 ind = files.index(shortName)
                 if crc == crc32List[ind]:

@@ -40,8 +40,8 @@ class Book_Fb2(Book):
             authorLast = ""
         if authorFirst != "" and authorLast != "":
             self.author = "%s %s" % (authorFirst, authorLast)
-        elif authorFirst != "":
-            if authorLast != "":
+        elif authorFirst == "":
+            if authorLast == "":
                 self.author = "Неизвестен"
             else:
                 self.author = authorLast
