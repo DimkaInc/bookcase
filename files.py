@@ -169,7 +169,10 @@ class Files():
         res.update({"fileName": filename[0:-len(res.get("extension"))]})
         res.update({"directory": os.path.dirname(fullPath)})
         res.update({"clearFileName": self.clearVersion(res.get("fileName"))})
-        res.update({"crc32": Crc32().crc32File(fullPath)})
+        try:
+            res.update({"crc32": Crc32().crc32File(fullPath)})
+        except:
+            res.update({"crc32": 0})
         return res
 
     def addFile(self, fileName):

@@ -60,7 +60,8 @@ class GoodBooks:
         result = ""
         if zipItem.flag_bits & 0b1000:
             result = zipItem.filename.encode("cp437").decode("utf-8")
-        elif (zipItem.flag_bits & 0b100000000000) or (zipItem.flag_bits == 0):
+        elif ((zipItem.flag_bits & 0b100000000000) or (zipItem.flag_bits == 0)
+            or (zipItem.flag_bits == 0b10)):
             result = zipItem.filename
         else:
             print(colored("[DEBUG] %s" % zipFile, "magenta", attrs = ["bold"]), "flags:", bin(zipItem.flag_bits) )
@@ -130,31 +131,6 @@ class GoodBooks:
             print("Error code:", e.code)
         return False
 
-    def operWithBook(self, book):
-        """
-        Обработка книги
-            Если такая книги уже есть, сравнивается какая более полная.
-        Параметры
-        ---------
-        book : Book
-            Класс книги
-        Возвращает
-        ----------
-        bool
-            True - книга обработана
-            False - книга удалена
-        """
-        if (book.is_dead()):
-            return False
-        book.showBook()
-        if (ind := self.crc32list(book.Crc32())) > -1:
-            # Совпала контрольная сумма с одной из ранее обработанных книг
-            for prevBook in self.filesWithCrc32[ind]: # Просмотрим все книги
-                if book.compareWith(prevBook) == 0:
-                    book.is_dead = True
-                    return False
-        return True
-
     def takeBook(self, dfile):
         """
         возвращает объект книги
@@ -171,8 +147,26 @@ class GoodBooks:
         book = None
         if (ext := dfile.get("extension")) == ".fb2":
             book = Book_Fb2(dfile)
-        elif ext == ".zip":
-            print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "В разработке для типа файла: '%s'" % ext)
+        elif ext == ".zip": # Извлечём все файлы из архива, а сам архив удалим
+            arch = zipfile.ZipFile(os.path.join(dfile.get("directory"),
+                dfile.get("fileName") + ext), "r")
+            archItems = arch.infolist()
+            print(colored("[ZIP]", "white", attrs = ["bold", "dark"]), "Распаковка файла: '%s%s'" % (dfile.get("fileName"), ext))
+            for item in archItems:
+                date_time = item.date_time
+                ditem = self.fileList.getFileStruct(os.path.join(dfile.get("directory"),
+                    self.decodeZipFile(item)))
+                saveFile = os.path.join(ditem.get("directory"), self.fileList.newFileIfExist(
+                    ditem.get("fileName"), ditem.get("extension")))
+                source = arch.open(item)
+                target = open(saveFile, "wb")
+                with source, target:
+                    shutil.copyfileobj(source, target)
+                source.close()
+                target.close()
+                date_time = time.mktime(date_time + (0, 0, -1))
+                os.utime(saveFile, (date_time, date_time))
+                self.fileList.addFile(os.path.basename(saveFile))
         else:
             print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
         if book != None and book.is_dead():
