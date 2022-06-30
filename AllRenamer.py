@@ -188,7 +188,7 @@ class GoodBooks:
         while( filename := self.fileList.getNextFile()):
             # Необходимо вычленить файлы, которые одинаково называются без версий
             dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
-            if not dfile.get("extension") in [".fb2", ".zip", ".epub", ".fb2.zip", ".fb2.epub"]:
+            if not dfile.get("extension") in [".fb2", ".zip", ".epub", ".fb2.zip", ".fb2.epub", ".mobi"]:
                 continue
             shortName = dfile.get("clearFileName") + dfile.get("extension")
             crc = dfile.get("crc32")
