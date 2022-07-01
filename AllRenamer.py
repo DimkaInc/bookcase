@@ -171,6 +171,7 @@ class GoodBooks:
                 self.fileList.addFile(os.path.basename(saveFile))
             arch.close()
             self.fileList.fileDelete(dfile.get("fileName") + ext)
+            print(colored("[ZIP]", "red", attrs = ["bold"]), "Удалён распакованный файла: '%s%s'" % (dfile.get("fileName"), ext))
         else:
             print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
         if book != None and book.is_dead():
