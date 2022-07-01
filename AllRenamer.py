@@ -169,6 +169,8 @@ class GoodBooks:
                 date_time = time.mktime(date_time + (0, 0, -1))
                 os.utime(saveFile, (date_time, date_time))
                 self.fileList.addFile(os.path.basename(saveFile))
+            arch.close()
+            self.fileList.fileDelete(dfile.get("fileName") + ext)
         else:
             print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
         if book != None and book.is_dead():
