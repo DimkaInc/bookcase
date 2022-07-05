@@ -11,8 +11,17 @@
 '''
 
 # -*- coding: utf-8 -*-
-import os, sys, shutil, zipfile, datetime, zlib, pathlib, time
+import os, sys, shutil, zipfile, datetime, zlib, pathlib, time, logging
+logging.basicConfig(
+    filename = sys.argv[0]+".log",
+    encoding = "utf-8",
+    format = '%(asctime)s [%(levelname)s]:%(message)s',
+    datefmt = '%d.%m.%Y %H:%M:%S',
+    level = logging.DEBUG
+) # DEBUG INFO WARNING ERROR CRITICAL
+
 from platform import python_version
+from sys import platform
 from termcolor import colored
 from colorama import init
 from xml.dom import minidom
@@ -20,6 +29,7 @@ from book_fb2 import Book_Fb2
 from crc32 import Crc32
 from files import Files
 import version
+from debug import *
 
 class GoodBooks:
     """Класс наведения порядка среди книг"""
@@ -40,11 +50,16 @@ class GoodBooks:
         init(autoreset = True)
         now = datetime.datetime.now()
         #self.filelist = Files(".")
-        print(colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
-          colored("(v" + self.version + ")", "red", attrs = ["bold"]))
-        print(colored("©", "yellow", attrs = ["bold"]), 
-          colored("%d" % now.year + " " + self.author, "white", attrs = ["bold"]),
-          colored(self.email, "cyan", attrs = ["bold", "underline"]), "\n")
+        infolog("Инициализирован класс")
+        print(
+            colored("Приведение в порядок файлов книг", "green", attrs = ["bold"]),
+            colored("(v" + self.version + ")", "red", attrs = ["bold"])
+        )
+        print(
+            colored("©", "yellow", attrs = ["bold"]),
+            colored("%d" % now.year + " " + self.author, "white", attrs = ["bold"]),
+            colored(self.email, "cyan", attrs = ["bold", "underline"]), "\n"
+        )
 
 
     def tryfb2epub(self, filename):
@@ -52,23 +67,58 @@ class GoodBooks:
         if not newfile:
             return False
         os.rename(filename, newfile)
-        print(colored("[EPUB]", "yellow", attrs = ["bold"]), "Файл переименован: " +
-            newfile)
+        infolog("Файл переименован: %s" % newfile)
+        print(
+            colored("[EPUB]", "yellow", attrs = ["bold"]),
+            "Файл переименован: $s" % newfile
+        )
         return True
 
-    def decodeZipFile(self, zipItem, zipFile=""):
+    def decodeZipFile(self, zipItem, zipFile = ""):
         result = ""
-        if zipItem.flag_bits & 0b1000:
-            result = zipItem.filename.encode("cp437").decode("utf-8")
-        elif ((zipItem.flag_bits & 0b100000000000) or (zipItem.flag_bits == 0)
-            or (zipItem.flag_bits == 0b10)):
+        debuglog("%s флаг: %s" % (zipFile, bin(zipItem.flag_bits)))
+
+        if zipItem.flag_bits == 0:
+            try:
+                result = zipItem.filename.encode("cp437").decode("cp866")
+            except Exception as e:
+                print(
+                    colored("[ОШИБКА] %s" % zipFile, "magenta", attrs = ["bold"]),
+                    "код:", sys.exc_info()[0]
+                )
+                errorlog("код: %s" % sys.exc_info()[0])
+                debuglog("%s, флаги: %s файл: %s" % (zipFile, bin(zipItem.flag_bits), zipItem.filename))
+                result = zipItem.filename
+        elif zipItem.flag_bits == 0b10:
+            debuglog("%s, флаги: %s файл: %s" % (zipFile, bin(zipItem.flag_bits), zipItem.filename))
+            result = zipItem.filename
+        elif zipItem.flag_bits == 0b1000:
+            try:
+                result = zipItem.filename.encode("cp437").decode("utf-8")
+            except:
+                print(
+                    colored("[ОШИБКА]", "magenta", attrs = ["bold"]),
+                    "код:", sys.exc_info()[0]
+                )
+                errorlog("код: %s" % sys.exc_info()[0])
+                debuglog("%s, флаги: %s файл: %s" % (zipFile, bin(zipItem.flag_bits), zipItem.filename))
+                result = zipItem.filename
+        elif zipItem.flag_bits == 0b100000000000:
+            debuglog("%s, флаги: %s файл: %s" % (zipFile, bin(zipItem.flag_bits), zipItem.filename))
             result = zipItem.filename
         else:
-            print(colored("[DEBUG] %s" % zipFile, "magenta", attrs = ["bold"]), "flags:", bin(zipItem.flag_bits) )
+            debuglog("%s, флаги: %s файл: %s" % (zipFile, bin(zipItem.flag_bits), zipItem.filename))
             try:
                 result = zipItem.filename.encode("cp437").decode("cp866")
             except:
+                print(
+                    colored("[ОШИБКА]", "magenta", attrs = ["bold"]),
+                    "код:", sys.exc_info()[0]
+                )
+                errorlog("код: %s" % sys.exc_info()[0])
+                debuglog("%s, флаги: %s файл: %s" % (zipFile, bin(zipItem.flag_bits), zipItem.filename))
                 result = zipItem.filename
+
         return result.replace("\\", os.path.sep)
 
     def extractFileFromZip(self, zipFile, zipItem):
@@ -105,7 +155,6 @@ class GoodBooks:
             if ext in [".zip", ".epub", ".fb2", ".rtf", ".pdf", ".docx", ".doc", ".txt"]:
                 unicodename = self.extractFileFromZip(filename, item)
                 self.appendFile(unicodename)
-                print(">>> %s" % unicodename)
         else:
             if (not filename.lower().endswith(".fb2.zip") and
                 includes[0].filename.lower().endswith(".fb2")):
@@ -125,8 +174,13 @@ class GoodBooks:
             return True
         try:
             os.remove(filename)
-            print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удалён файл: " + filename)
+            print(
+                colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]),
+                "Удалён файл: %s" % filename
+            )
+            infolog("Удалён  файл: %s" % filename)
         except OSError as e:
+            errorlog("Ошибка: %s, код %s" % (e.strerror, e.code))
             print("Failed with:", e.strerror) # look what it says
             print("Error code:", e.code)
         return False
@@ -146,12 +200,22 @@ class GoodBooks:
         """
         book = None
         if (ext := dfile.get("extension")) == ".fb2":
+            infolog("[FB2] обработка книги \"%s%s\"" % (dfile.get("fileName"), ext))
             book = Book_Fb2(dfile)
         elif ext == ".zip": # Извлечём все файлы из архива, а сам архив удалим
-            arch = zipfile.ZipFile(os.path.join(dfile.get("directory"),
-                dfile.get("fileName") + ext), "r")
+            infolog("[ZIP] Распаковка файла: \"%s%s\"" % (dfile.get("fileName"), ext))
+            print(
+                colored("[ZIP]", "white", attrs = ["bold", "dark"]),
+                "Распаковка файла: '%s%s'" % (dfile.get("fileName"), ext)
+            )
+            try:
+                arch = zipfile.ZipFile(os.path.join(dfile.get("directory"),
+                    dfile.get("fileName") + ext), "r")
+            except:
+                warninglog("Архив повреждён и удалён: %s" % dfile.get("fileName") + ext)
+                self.fileList.fileDelete(dfile.get("fileName") + ext)
+                return book
             archItems = arch.infolist()
-            print(colored("[ZIP]", "white", attrs = ["bold", "dark"]), "Распаковка файла: '%s%s'" % (dfile.get("fileName"), ext))
             for item in archItems:
                 if item.is_dir():
                     continue
@@ -160,6 +224,7 @@ class GoodBooks:
                     self.decodeZipFile(item)))
                 saveFile = os.path.join(dfile.get("directory"), self.fileList.newFileIfExist(
                     ditem.get("fileName"), ditem.get("extension")))
+                debuglog("%s файл: \"%s\"" % (dfile.get("fileName") + ext, saveFile))
                 source = arch.open(item)
                 target = open(saveFile, "wb")
                 with source, target:
@@ -171,9 +236,17 @@ class GoodBooks:
                 self.fileList.addFile(os.path.basename(saveFile))
             arch.close()
             self.fileList.fileDelete(dfile.get("fileName") + ext)
-            print(colored("[ZIP]", "red", attrs = ["bold"]), "Удалён распакованный файла: '%s%s'" % (dfile.get("fileName"), ext))
+            infolog("[ZIP] Удалён распакованный файл: %s%s" % (dfile.get("fileName"), ext))
+            print(
+                colored("[ZIP]", "red", attrs = ["bold"]),
+                "Удалён распакованный файла: '%s%s'" % (dfile.get("fileName"), ext)
+            )
         else:
-            print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Не реализовано для типа файла: '%s'" % ext)
+            debuglog("Не реализовано для типа файла %s \"%s%s\""  % (ext, dfile.get("fileName"), ext))
+            print(
+                colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]),
+                "Не реализовано для типа файла: '%s'" % ext
+            )
         if book != None and book.is_dead():
             del book
             book = None
@@ -187,7 +260,10 @@ class GoodBooks:
         crc32List = []
         books = []
         dfiles = []
-        print(colored("Производится учёт всех существующих файлов для исключения дубликатов", "white"))
+        infolog("Запуск обработки")
+        print(
+            colored("Производится учёт всех существующих файлов для исключения дубликатов", "white")
+        )
         while( filename := self.fileList.getNextFile()):
             # Необходимо вычленить файлы, которые одинаково называются без версий
             dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
@@ -196,9 +272,7 @@ class GoodBooks:
             shortName = dfile.get("clearFileName") + dfile.get("extension")
             crc = dfile.get("crc32")
             book = self.takeBook(dfile)
-            #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Краткое имя файла:", shortName)
-            #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "CRC32:", crc)
-            #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Book:", book.is_dead())
+            debuglog("Краткое имя файла: \"%s\", CRC32: %i" % (shortName, crc))
             if book != None and book.is_dead():
                 del book
                 book = None
@@ -208,8 +282,7 @@ class GoodBooks:
                 newFile = self.fileList.newFileIfExist(newName[0:-len(dfile.get("extension"))], dfile.get("extension"))
                 #book.showBook()
                 if newName != shortName or (newFile == newName and book.fileName() != newFile):
-                    #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Старый файл:", book.fileName())
-                    #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Новый файл: ", newFile)
+                    debuglog("Переименование файла \"%s\" в \"%s\"" % (book.fileName(), newFile))
                     self.fileList.fileRename(book.fileName(), newFile)
                     book.filename = newFile
                     filename = newFile
@@ -220,34 +293,53 @@ class GoodBooks:
                 ind = files.index(shortName)
                 if crc == crc32List[ind]:
                     # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
-                    print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
+                    infolog("Удаление дубликата %s", self.fileList.getFullPath(filename))
+                    print(
+                        colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]),
+                        "Удаляю файл:", self.fileList.getFullPath(filename)
+                    )
                     self.fileList.fileDelete(filename)
                     continue
                 # Если файлы разные - проверить книги
                 if book != None:
                     if books[ind] != None:
                         res = book.compareWith(books[ind])
-                        #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Сравниваю:", book.bookName())
-                        #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "и:", books[ind].bookName())
-                        #print(colored("[ОТЛАДКА]", "magenta", attrs = ["bold"]), "Результат:", res)
+                        debuglog("Сравнение книг \"%s\" и \"%s\" с результатом %i" % (book.bookName(), books[ind].bookName(), res))
                         if res == 0:
-                            print(colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
+                            infolog("Удаление дубликата %s", self.fileList.getFullPath(filename))
+                            print(
+                                colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]),
+                                "Удаляю файл:", self.fileList.getFullPath(filename)
+                            )
                             self.fileList.fileDelete(filename)
                             continue
                         if res == 10: # разные
+                            infolog("Добавление книги %s", self.fileList.getFullPath(filename))
                             files.append(shortName)
                             dfiles.append(dfile)
                             crc32List.append(crc)
                             books.append(book)
                             continue
                         if res < 0: # вторая полнее
-                            print(colored("[Предыдущая версия]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(filename))
+                            infolog("Удаление предыдущей версии файла: %s", self.fileList.getFullPath(filename))
+                            print(
+                                colored("[Предыдущая версия]", "red", attrs = ["bold"]),
+                                "Удаляю файл:", self.fileList.getFullPath(filename)
+                            )
                             self.fileList.fileDelete(filename)
                             continue
                         oldFile = dfiles[ind].get("fileName") + dfiles[ind].get("extension")
-                        print(colored("[Предыдущая версия]", "red", attrs = ["bold"]), "Удаляю файл:", self.fileList.getFullPath(oldFile))
+                        infolog("Удаление предыдущей версии файла: %s", self.fileList.getFullPath(oldFile))
+                        print(
+                            colored("[Предыдущая версия]", "red", attrs = ["bold"]),
+                            "Удаляю файл:", self.fileList.getFullPath(oldFile)
+                        )
                         self.fileList.fileDelete(oldFile)
-                        print(colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]), "Старый файл:", self.fileList.getFullPath(filename))
+                        infolog("Замена файла книги: %s на %s"% (self.fileList.getFullPath(filename), self.fileList.getFullPath(oldFile)))
+                        print(
+                            colored("[ЗАМЕНА (книги)]", "yellow", attrs = ["bold"]),
+                            "Старый файл:", self.fileList.getFullPath(filename)
+                        )
                         self.fileList.fileRename(filename, oldFile)
                         dfile.update({"fileName" : dfiles[ind].get("fileName")})
                         book.renameFile(oldFile)
@@ -262,8 +354,13 @@ class GoodBooks:
             else:
                 if crc in crc32List:
                     #ind = crc32List.index(crc)
-                    self.fileList.fileDelete(filename)
-                    continue
+                    try:
+                        infolog("Удаляется файл: %s" % filename)
+                        self.fileList.fileDelete(filename)
+                        infolog("Удалён файл: %s" % filename)
+                    finally:
+                        continue
+                infolog("Учитывается файл: %s" % filename)
                 files.append(shortName)
                 dfiles.append(dfile)
                 crc32List.append(crc)
@@ -294,10 +391,17 @@ class GoodBooks:
 
             #else:
             #    del book
-            print( "%d" % self.fileList.getPercent(), "%", end="\r")
+            print(
+                "%d" % self.fileList.getPercent(),
+                "%", end="\r"
+            )
             #print( "%d " % ((percent) * 100 // self.countfiles),"%", filename, self.countfiles)
             #self.checkFile(filename)
-        print(colored("Проверка завершена", "green", attrs = ["bold"]))
+        print(
+            colored("Проверка завершена", "green", attrs = ["bold"])
+        )
+        infolog("Окончание работы")
+
 
 Library = GoodBooks()
 Library.start()
