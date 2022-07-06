@@ -11,14 +11,18 @@
 '''
 
 # -*- coding: utf-8 -*-
-import os, sys, shutil, zipfile, datetime, zlib, pathlib, time, logging
-logging.basicConfig(
-    filename = sys.argv[0]+".log",
-    encoding = "utf-8",
-    format = '%(asctime)s [%(levelname)s]:%(message)s',
-    datefmt = '%d.%m.%Y %H:%M:%S',
-    level = logging.DEBUG
-) # DEBUG INFO WARNING ERROR CRITICAL
+import os, sys, shutil, zipfile, datetime, zlib, pathlib, time, loggingб logging.config
+import yaml # pyyaml
+#logging.basicConfig(
+#    filename = sys.argv[0]+".log",
+#    filemode = "w",
+#    encoding = "utf-8",
+#    format = "%(asctime)s %(filename)s-%(lineno)d-%(module)s-[%(levelname)s]:%(message)s",
+#    datefmt = "%d.%m.%Y %H:%M:%S",
+#    level = logging.DEBUG
+#) # DEBUG INFO WARNING ERROR CRITICAL
+with open("AllRenamer.yaml", "r") as stream:
+    logging.config.dictConfig(yaml.safe_load(stream))
 
 from platform import python_version
 from sys import platform
@@ -293,7 +297,7 @@ class GoodBooks:
                 ind = files.index(shortName)
                 if crc == crc32List[ind]:
                     # Если файлы одинаковые (CRC32) - удалить дубликат #---, у которого длиннее имя
-                    infolog("Удаление дубликата %s", self.fileList.getFullPath(filename))
+                    infolog("Удаление дубликата %s" % self.fileList.getFullPath(filename))
                     print(
                         colored("[ДУБЛИКАТ]", "red", attrs = ["bold"]),
                         "Удаляю файл:", self.fileList.getFullPath(filename)

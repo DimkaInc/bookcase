@@ -1,9 +1,10 @@
 #!/bin/python3
 
 # -*- coding: utf-8 -*-
-import os, datetime, pathlib
+import os, datetime, pathlib, logging
 from files import Files
 from crc32 import Crc32
+from debug import *
 
 class Book:
     """Прототип класса книга."""
@@ -19,6 +20,7 @@ class Book:
     change = 0.0  # Дата и время изменения
     booksize = 0  # Размер книги
     dead = True
+    logger = logging.getLogger("book")
 
     def is_dead(self):
         """
@@ -43,6 +45,8 @@ class Book:
         filename : str
             Имя файла с путём
         """
+        self.logger.info("Создан объект книга из каталога и имени файла")
+        self.logger.debug("Каталог: %s, файл: %s" % (directory, filename))
         self.directory = directory
         self.filename = filename
         self.booktype = pathlib.Path(self.filename).suffix
@@ -62,6 +66,8 @@ class Book:
         dfile : dict
             структурированные данные о файле
         """
+        self.logger.info("Создан объект книга из структурированной записи о файле")
+        self.logger.debug("Запись: %s" % str(dfile))
         self.directory = dfile.get("directory")
         self.filename = dfile.get("fileName") + dfile.get("extension")
         self.booktype = dfile.get("extension")
@@ -81,6 +87,7 @@ class Book:
         str
             Директория
         """
+        self.logger.debug("Directory()= %s" % self.directory)
         return self.directory
 
     def fileName(self):
@@ -91,6 +98,7 @@ class Book:
         str
             Имя файла
         """
+        self.logger.debug("fileName()= %s" % self.filename)
         return self.filename
 
     def fullFileName(self):
@@ -101,6 +109,7 @@ class Book:
         str
             Полное имя файла с путём
         """
+        self.logger.debug("fullFileName()= %s" % os.path.join(self.directory, self.filename))
         return(os.path.join(self.directory, self.filename))
 
     def bookName(self):
@@ -111,6 +120,7 @@ class Book:
         str
             Название книги
         """
+        self.logger.debug("bookName()= %s" % self.bookname)
         return self.bookname
 
     def Crc32(self):
@@ -121,6 +131,7 @@ class Book:
         int
             Контрольная сумма CRC32
         """
+        self.logger.debug("Crc32()= %s" % self.crc32)
         return self.crc32
 
     def bookType(self):
@@ -131,6 +142,7 @@ class Book:
         str
             Тип (расширение) книги
         """
+        self.logger.debug("bookType()= %s" % self.booktype)
         return self.booktype
 
     def Author(self):
@@ -141,6 +153,7 @@ class Book:
         str
             Автор
         """
+        self.logger.debug("Author()= %s" % self.author)
         return self.author
 
     def bookSize(self):
@@ -151,6 +164,7 @@ class Book:
         int
             Размер книги в байтах
         """
+        self.logger.debug("bookSize()= %i" % self.booksize)
         return self.booksize
 
     def Born(self):
@@ -161,6 +175,7 @@ class Book:
         datetime
             Дата и время создания книги
         """
+        self.logger.debug("Born()= %s" % self.born)
         return self.born
 
     def Change(self):
@@ -171,12 +186,14 @@ class Book:
         datetime
             Дата и время изменения книги
         """
+        self.logger.debug("Change()= %s" % self.change)
         return self.change
 
     def showBook(self):
         """
         Вывод данных о книге в консоль
         """
+        self.logger.debug("Печать в консоль данных о книге")
         print("Название: %s" % self.bookName())
         print("Автор:    %s" % self.Author())
         print("Дата:     %s" % self.Born().strftime("%d.%m.%Y, %H:%M:%S"))
@@ -202,8 +219,10 @@ class Book:
         str
             изменённая строка
         """
+        self.logger.debug("replaces(%s, %s, %s)" % (source, str(fromList), toStr))
         for st in fromList:
             source = source.replace(st, toStr)
+        self.logger.debug("replaces(...)= %s" % source)
         return source
 
     def makeName(self):
@@ -216,7 +235,9 @@ class Book:
         """
         name = self.replaces(self.bookName(), self.chars2underline, "_")
         name = self.replaces(name, self.chars2none, "")
-        return ("%s-%s" % (self.Author(), name)).replace("__", "_")
+        result = ("%s-%s" % (self.Author(), name)).replace("__", "_")
+        self.logger.debug("makeName()= %s" % result)
+        return result
 
     def makeFileName(self):
         """
@@ -226,7 +247,9 @@ class Book:
         str
             Название книги с расширением
         """
-        return self.replaces("%s%s" % (self.makeName(), self.bookType()), self.chars2underline, "_")
+        result = self.replaces("%s%s" % (self.makeName(), self.bookType()), self.chars2underline, "_")
+        self.logger.debug("makeFileName()= %s", result)
+        return result
 
     def renameFile(self, newFileName):
         """
@@ -236,6 +259,7 @@ class Book:
         newFileName : str
             Новое название файла
         """
+        self.logger.debug("renameFile(%s)" % newFileName)
         self.filename = newFileName
 
     def checkFileName(self):
@@ -247,6 +271,7 @@ class Book:
             True - файл соответствует названию
             False - файл не соответствует названию
         """
+        self.logger.debug("checkFileName()= %s" % str(self.filename.find(self.makeName()) > -1))
         return self.filename.find(self.makeName()) > -1
 
     def compareWith(self, book):
@@ -267,11 +292,16 @@ class Book:
              1 - одинаковые, эта полнее
         """
         if self.Author() != book.Author():
+            self.logger.debug("compareWith(%s)= 10" % str(book))
             return 10
         if self.bookName() != book.bookName():
+            self.logger.debug("compareWith(%s)= 10" % str(book))
             return 10
         if self.Crc32() == book.Crc32():
+            self.logger.debug("compareWith(%s)= 0" % str(book))
             return 0
         if self.bookSize() < book.bookSize():
+            self.logger.debug("compareWith(%s)= -1" % str(book))
             return -1
+        self.logger.debug("compareWith(%s)= 1" % str(book))
         return 1
