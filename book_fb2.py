@@ -23,6 +23,7 @@ class Book_Fb2(Book):
         book : minidom Document
             Распарсенный XML документ
         """
+        self.logger.debug("fillFromDom(%s)" % str(book))
         description = book.getElementsByTagName("description")
         titleinfo = description[0].getElementsByTagName("title-info")
         try:
@@ -83,14 +84,17 @@ class Book_Fb2(Book):
         ----------
         В случае неудачи, метод is_dead() вернёт True
         """
+        self.logger.info("Создание FB2 книги из каталога и файла")
         super(Book_Fb2, self).__init__(directory, filename)
         if self.booktype != ".fb2":
+            self.logger.debug("Не FB2")
             self.dead = True
         else:
             #data = datetime.datetime.fromtimestamp(os.path.getctime(self.fullFileName()))
             try:
                 book = minidom.parse(self.fullFileName())
             except:
+                self.logger.error("Файл с повреждённой XML структурой")
                 self.dead = True
             if not self.is_dead():
                 self.fillFromDom(book)
@@ -107,14 +111,17 @@ class Book_Fb2(Book):
         ----------
         В случае неудачи, метод is_dead() вернёт True
         """
+        self.logger.info("Создание FB2 книги из структурированной записи о файле")
         super(Book_Fb2, self).__init__(dfile)
         if self.booktype != ".fb2":
+            self.logger,debug("Не FB2")
             self.dead = True
         else:
             #data = datetime.datetime.fromtimestamp(os.path.getctime(self.fullFileName()))
             try:
                 book = minidom.parse(self.fullFileName())
             except:
+                self.logger.error("Файл с повреждённой XML структурой")
                 self.dead = True
             if not self.is_dead():
                 self.fillFromDom(book)
@@ -127,6 +134,7 @@ class Book_Fb2(Book):
         str
             Язык книги (например: "ru", "en" и т.п.)
         """
+        self.logger.debug("Lang()= %s" % self.lang)
         return self.lang # Язык книги
 
     def Sequence(self):
@@ -137,9 +145,11 @@ class Book_Fb2(Book):
         str
             Серия вида: Название серии [том]
         """
-        if self.sequenceNumber == "":
-            return ""
-        return "%s [%s]" % (self.sequenceName, self.sequenceNumber) # Серия книги
+        result = ""
+        if self.sequenceNumber != "":
+            result = "%s [%s]" % (self.sequenceName, self.sequenceNumber) # Серия книги
+        self.logger.debug("Sequence()= %s" % result)
+        return result
 
     def BookId(self):
         """
@@ -149,12 +159,14 @@ class Book_Fb2(Book):
         str
             Идентификатор книги
         """
+        self.logger.debug("BookId()= %s" % self.bookId)
         return self.bookId # Идентификатор книги
 
     def showBook(self):
         """
         Выводит информацию о книге в консоль
         """
+        self.logger.debug("Вывод информации о книге в консоль")
         print("ID:       %s" % self.BookId())
         print("Серия:    %s" % self.Sequence())
         super(Book_Fb2, self).showBook()
@@ -168,9 +180,13 @@ class Book_Fb2(Book):
         str
             Название книги для файла
         """
+        result = super(Book_Fb2, self).makeName()
         if (self.sequenceNumber != ""):
-            return self.replaces("%s-%s" % (self.Sequence(), super(Book_Fb2, self).makeName()), self.chars2underline, "_")
-        return super(Book_Fb2, self).makeName()
+            result = "%s-%s" % (self.Sequence(), result)
+            result = self.replaces(result, self.chars2underline, "_")
+            result = self.replaces(result, self.chars2none, "")
+        self.logger.debug("nameName()= %s" % result)
+        return result
 
     def compareWith(self, book):
         """
@@ -191,5 +207,6 @@ class Book_Fb2(Book):
         """
         if self.sequenceNumber != "":
             if self.Sequence() != book.Sequence():
+                self.logger.debug("compareWith(%s)= 10" % str(book))
                 return 10
         return super(Book_Fb2, self).compareWith(book)

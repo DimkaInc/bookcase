@@ -2,12 +2,13 @@
 
 # -*- coding: utf-8 -*-
 #import os, sys, shutil, zipfile, datetime, zlib, time
-import os, time, pathlib
+import os, time, pathlib, logging
 from crc32 import Crc32
 
 class Files():
     """Класс взаимодействия с файлами"""
 
+    logger = logging.getLogger("files")
     filesList = []
     index = 0 # Указатель на следующий файл из списка
     directory = "."
@@ -20,12 +21,12 @@ class Files():
         directory : str
             каталог, в коором будет производиться работа
         """
+        self.logger.info("Создан класс")
+        self.logger.debug("Каталог: %s" % directory)
         self.directory = directory
         self.index = 0
         self.filesList = [f for f in os.listdir(self.directory) if os.path.isfile(os.path.join(self.directory, f))]
         self.filesList.sort()
-        #for f in self.filesList:
-        #    print("><><><", f)
 
     def Directory(self):
         """
@@ -35,6 +36,7 @@ class Files():
         str
             Рабочий каталог размещения файлов
         """
+        self.logger.debug("Directory()= %s" % self.directory)
         return self.directory
 
     def getPercent(self):
@@ -45,7 +47,9 @@ class Files():
         int
             Процентное значение просмотренных файлов
         """
-        return self.index * 100 // len(self.filesList)
+        result = self.index * 100 // len(self.filesList)
+        self.logger.debug("getPercent()= %i" % result)
+        return result
 
     def getFullPath(self, filename):
         """
@@ -61,7 +65,9 @@ class Files():
             имя файла с путём к рабочей папке
 
         """
-        return os.path.join(self.directory, filename)
+        result = os.path.join(self.directory, filename)
+        self.logger.debug("getFullPath(%s)= %s" % (filename, result))
+        return result
 
     def getOnlyFile(self, fullpath):
         """
@@ -76,7 +82,9 @@ class Files():
         str
             Имя файла без пути
         """
-        return os.path.basename(fullpath)
+        result = os.path.basename(fullpath)
+        self.logger.debug("getOnlyFile(%s)= %s" % (fullpath, result))
+        return result
 
     def getOsSeparatorPath(self, fullpath):
         """
@@ -90,7 +98,9 @@ class Files():
         str
             Полный путь к файлу с разделителями пути, используемыми в ОС запуска приложения
         """
-        return fullpath.replace("\\", os.path.sep)
+        result = fullpath.replace("\\", os.path.sep)
+        self.logger.debug("getOsSeparatorPath(%s)= %s" % (fullpath, result))
+        return result
 
     def clearVersion(self, nameOfFile):
         """
@@ -107,6 +117,7 @@ class Files():
         """
         ind = len(nameOfFile) - 1
         if ind < 0 or not nameOfFile[ind] in [")"]:
+            self.logger.debug("clearVersion(%s)= %s" % (nameOfFile, nameOfFile))
             return nameOfFile
         ind -= 1
         verList = [str(x) for x in list(range(10))]
@@ -115,7 +126,9 @@ class Files():
         while ind > 0 and nameOfFile[ind] in ["_", "("]:
             ind -= 1
         if ind == len(nameOfFile) - 2:
+            self.logger.debug("clearVersion(%s)= %s" % (nameOfFile, nameOfFile))
             return nameOfFile
+        self.logger.debug("clearVersion(%s)= %s" % (nameOfFile, nameOfFile[0:ind + 1]))
         return nameOfFile[0:ind + 1]
 
     def getFileExt(self, filename):
@@ -172,7 +185,9 @@ class Files():
         try:
             res.update({"crc32": Crc32().crc32File(fullPath)})
         except:
+            self.logger.error("Не удалось расчитать CRC32 для файла %s" % fullPath)
             res.update({"crc32": 0})
+        self.logger.debug("getFileStruct(%s)= %s" % (fullPath, str(res)))
         return res
 
     def addFile(self, fileName):
@@ -183,6 +198,7 @@ class Files():
         filename : str
             Имя файла
         """
+        self.logger.debug("addFile(%s)" % fileName)
         self.filesList.append(fileName)
 
     def newFileIfExist(self, fname, fext):
@@ -204,6 +220,7 @@ class Files():
         while newfile.lower() in map(str.lower, self.filesList):
             num += 1
             newfile = "".join([fname, "_(%d)" % num, fext])
+        self.logger.debug("newFileIfExist(%s, %s)= %s" % (fname, fext, newfile))
         return newfile
 
     def getNextFile(self):
@@ -216,7 +233,9 @@ class Files():
         """
         if self.index < len(self.filesList):
             self.index += 1
+            self.logger.debug("getNextFile()= %s" % self.filesList[self.index - 1])
             return self.filesList[self.index - 1]
+        self.logger.debug("getNextFile()= False")
         return False
 
     def setFileDateTime(self, filename, date_time):
@@ -231,6 +250,7 @@ class Files():
         """
         date_time = time.mktime(date_time.timetuple())
         os.utime(self.getFullPath(filename), (date_time, date_time))
+        self.logger.debug("setFileDateTime(%s, %s)" % (filename, str(date_time)))
 
     def fileRename(self, filename, newfilename):
         """
@@ -244,6 +264,7 @@ class Files():
         """
         os.rename(self.getFullPath(filename), self.getFullPath(newfilename))
         self.filesList[self.filesList.index(filename)] = newfilename
+        self.logger.debug("fileRename(%s, %s)" % (filename, newfilename))
 
     def fileDelete(self, filename):
         """
@@ -259,3 +280,4 @@ class Files():
         self.filesList.remove(filename)
         if index < self.index:
             self.index -= 1;
+        self.logger.debug("fileDelete(%s)" % filename)

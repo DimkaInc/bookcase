@@ -1,7 +1,8 @@
 #!/bin/python3
-import zlib
+import zlib, logging
 
 class Crc32:
+    logger = logging.getLogger("crc32")
     """Класс подсчёта контрольной суммы CRC32"""
 
     def crc32(self, chunk, hash = 0):
@@ -22,7 +23,9 @@ class Crc32:
             Чтобы привести к шестнадцатиричному виду используйте метод
             hash2crc32
         """
-        return zlib.crc32(chunk, hash)
+        result = zlib.crc32(chunk, hash)
+        self.logger.debug("crc32(..,%i)= %i" % (hash, result))
+        return result
 
     def crc32File(self, filename, chunksize=65536):
         """
@@ -44,6 +47,7 @@ class Crc32:
         with open(filename, "rb") as f:
             while (chunk := f.read(chunksize)):
                 hash = self.crc32(chunk, hash)
+        self.logger.info("crc32file(%s, %i)= %i" % (filename, chunksize, hash))
         return hash
 
     def hash2crc32(self, hash):
@@ -59,4 +63,6 @@ class Crc32:
         str
             Контрольканя сумма в шестнадцатиричном виде
         """
-        return "%08X" % (hash & 0xFFFFFFFF)
+        result = "%08X" % (hash & 0xFFFFFFFF)
+        self.logger.debug("hash2crc32(%i)= %s" % (hash, result))
+        return result

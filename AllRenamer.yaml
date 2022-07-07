@@ -14,12 +14,12 @@ handlers:
     console:
         class: logging.StreamHandler
         level: DEBUG
-        formatter: simple
+        formatter: brief
         stream: ext://sys.stdout
     file:
         class: logging.handlers.RotatingFileHandler
         encoding: "utf-8"
-        formatter: precise
+        formatter: simple
         filename: allrenamer.log
         maxBytes: 0xA00000
         backupCount: 3
@@ -29,7 +29,7 @@ loggers:
         handlers: [file]
         propogate: no
     crc32:
-        level: DEBUG
+        level: INFO
         handlers: [file]
         propogate: no
     files:
@@ -41,6 +41,6 @@ loggers:
         handlers: [file]
         propogate: no
 root:
-    level: DEBUG
-    handlers: [console, file]
+    level: ERROR
+    handlers: [file]
     propogate: no
