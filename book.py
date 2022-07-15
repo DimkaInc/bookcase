@@ -4,7 +4,6 @@
 import os, datetime, pathlib, logging
 from files import Files
 from crc32 import Crc32
-from debug import *
 
 class Book:
     """Прототип класса книга."""

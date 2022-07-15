@@ -33,7 +33,6 @@ from book_fb2 import Book_Fb2
 from crc32 import Crc32
 from files import Files
 import version
-#from debug import *
 
 class GoodBooks:
     """Класс наведения порядка среди книг"""
