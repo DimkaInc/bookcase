@@ -12,7 +12,7 @@
 
 # -*- coding: utf-8 -*-
 import os, sys, shutil, zipfile, datetime, zlib, pathlib, time, logging, logging.config
-import yaml # pyyaml
+import yaml # pyyaml: python3 -m pip install pyyaml --upgrade
 #logging.basicConfig(
 #    filename = sys.argv[0]+".log",
 #    filemode = "w",
@@ -26,8 +26,8 @@ with open("AllRenamer.yaml", "r") as stream:
 
 from platform import python_version
 from sys import platform
-from termcolor import colored
-from colorama import init
+from termcolor import colored # python3 -m pip install termcolor --upgrade
+from colorama import init # python3 -m pip install colorama --upgrade
 from xml.dom import minidom
 from book_fb2 import Book_Fb2
 from crc32 import Crc32

@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 import datetime
-from dateutil import parser
+from dateutil import parser # python3 -m pip install python-dateutil --upgrade
 from book import Book
 from xml.dom import minidom
 
