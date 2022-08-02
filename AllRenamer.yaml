@@ -11,6 +11,11 @@ formatters:
         datefmt: "%d.%m.%Y %H:%M:%S"
         style: "%"
 handlers:
+    nothing:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: brief
+        stream: ext://os.devnull
     console:
         class: logging.StreamHandler
         level: DEBUG
@@ -42,5 +47,5 @@ loggers:
         propogate: no
 root:
     level: ERROR
-    handlers: [file]
+    handlers: [nothing]
     propogate: no

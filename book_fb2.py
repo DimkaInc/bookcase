@@ -15,6 +15,28 @@ class Book_Fb2(Book):
     sequenceNumber = ""
     bookId = ""
 
+    def getItemTextFromXMLNode(self, xml_node, item):
+        """
+        Получение элемента из XML структуры
+        Параметры
+        ---------
+        xml_node : object
+            структурированный XML объект
+        item : str
+            требуемый элемент
+
+        Возвращает
+        ----------
+        str
+            Текстовое значение элемента или "" если ничего не найдено
+        """
+        #res = xml_node[0].getElementsByTagName(item)[0].childNodes[0].nodeValue
+        try:
+            res = xml_node[0].getElementsByTagName(item)[0].childNodes[0].nodeValue
+        except:
+            res = ""
+        return res
+
     def fillFromDom(self, book):
         """
         Заполнение атрибутов книги
@@ -26,32 +48,55 @@ class Book_Fb2(Book):
         self.logger.debug("fillFromDom(%s)" % str(book))
         description = book.getElementsByTagName("description")
         titleinfo = description[0].getElementsByTagName("title-info")
-        try:
-            self.lang = titleinfo[0].getElementsByTagName("lang")[0].childNodes[0].nodeValue
-        except:
-            self.lang = ""
+        documentinfo = description[0].getElementsByTagName("document-info")
+        publishinfo = description[0].getElementsByTagName("publish-info")
+        self.lang = self.getItemTextFromXMLNode(titleinfo, "lang")
+        #try:
+        #    self.lang =   titleinfo[0].getElementsByTagName("lang"      )[0].childNodes[0].nodeValue
+        #except:
+        #    self.lang = ""
 
-        try:
-            authorFirst = titleinfo[0].getElementsByTagName("first-name")[0].childNodes[0].nodeValue
-        except:
-            authorFirst = ""
-        try:
-            authorMiddle = titleinfo[0].getElementsByTagName("middle-name")[0].childNodes[0].nodeValue
-        except:
-            authorMiddle = ""
+        authorFirst = self.getItemTextFromXMLNode(titleinfo, "first-name")
+        if authorFirst == "":
+            authorFirst = self.getItemTextFromXMLNode(documentinfo, "first-name")
+        #try:
+        #    authorFirst = titleinfo[0].getElementsByTagName("first-name")[0].childNodes[0].nodeValue
+        #except:
+        #    authorFirst = ""
+        authorMiddle = self.getItemTextFromXMLNode(titleinfo, "middle-name")
+        if authorMiddle == "":
+            authorMiddle = self.getItemTextFromXMLNode(documentinfo, "middle-name")
+        #try:
+        #    authorMiddle = titleinfo[0].getElementsByTagName("middle-name")[0].childNodes[0].nodeValue
+        #except:
+        #    authorMiddle = ""
         if (ind := authorMiddle.find(" ")) > 0:
             authorMiddle = authorMiddle[0:ind]
-        try:
-            authorLast = titleinfo[0].getElementsByTagName("last-name")[0].childNodes[0].nodeValue
-        except:
-            authorLast = ""
+        authorLast = self.getItemTextFromXMLNode(titleinfo, "last-name")
+        if authorLast == "":
+            authorLast = self.getItemTextFromXMLNode(documentinfo, "last-name")
+        #try:
+        #    authorLast = titleinfo[0].getElementsByTagName("last-name")[0].childNodes[0].nodeValue
+        #except:
+        #    authorLast = ""
         author = ("%s %s %s" % (authorFirst, authorMiddle, authorLast)).replace("  ", " ").strip()
         if author == "":
             self.author = "Неизвестен"
         else:
             self.author = author
 
-        self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
+        self.bookname = self.getItemTextFromXMLNode(titleinfo,"book-title")
+        if self.bookname == "":
+            self.bookname = self.getItemTextFromXMLNode(documentinfo,"book-title")
+        if self.bookname == "":
+            self.bookname = self.getItemTextFromXMLNode(publishinfo,"book-name")
+        if self.bookname == "":
+            self.bookname = "Неизвестное произведение"
+        #try:
+        #    self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
+        #except:
+        #    self.bookname = "Неизвестное произведение"
+
         try:
             sequenceTag = titleinfo[0].getElementsByTagName("sequence")[0]
             self.sequenceName = sequenceTag.attributes['name'].value
@@ -60,14 +105,15 @@ class Book_Fb2(Book):
             self.sequenceName = ""
             self.sequenceNumber = ""
 
-        docinfo = description[0].getElementsByTagName("document-info")
-        try:
-            self.bookId = docinfo[0].getElementsByTagName("id")[0].childNodes[0].nodeValue
-        except:
-            self.bookId = ""
+        #docinfo = description[0].getElementsByTagName("document-info")
+        self.bookId = self.getItemTextFromXMLNode(documentinfo,"id")
+        #try:
+        #    self.bookId = docinfo[0].getElementsByTagName("id")[0].childNodes[0].nodeValue
+        #except:
+        #    self.bookId = ""
 
         try:
-            bookDate = docinfo[0].getElementsByTagName("date")[0].attributes["value"].value
+            bookDate = documentinfo[0].getElementsByTagName("date")[0].attributes["value"].value
             self.born = parser.parse(bookDate)
         except:
             self.born = datetime.datetime.fromtimestamp(self.born)
