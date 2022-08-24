@@ -83,15 +83,18 @@ class Book_Fb2(Book):
         if author == "":
             self.author = "Неизвестен"
         else:
-            self.author = author
-
+            self.author = self.replaces(author, self.chars2none, "")
+        #print(str(titleinfo[0].getElementsByTagName("book-title")))
+        #self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
         self.bookname = self.getItemTextFromXMLNode(titleinfo,"book-title")
+
         if self.bookname == "":
             self.bookname = self.getItemTextFromXMLNode(documentinfo,"book-title")
         if self.bookname == "":
             self.bookname = self.getItemTextFromXMLNode(publishinfo,"book-name")
         if self.bookname == "":
             self.bookname = "Неизвестное произведение"
+        self.bookname = self.replaces(self.bookname, self.chars2none, "")
         #try:
         #    self.bookname = titleinfo[0].getElementsByTagName("book-title")[0].childNodes[0].nodeValue
         #except:
@@ -231,7 +234,7 @@ class Book_Fb2(Book):
             result = "%s-%s" % (self.Sequence(), result)
             result = self.replaces(result, self.chars2underline, "_")
             result = self.replaces(result, self.chars2none, "")
-        self.logger.debug("nameName()= %s" % result)
+        self.logger.debug("makeName()= %s" % result)
         return result
 
     def compareWith(self, book):

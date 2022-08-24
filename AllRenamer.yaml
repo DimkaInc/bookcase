@@ -12,10 +12,8 @@ formatters:
         style: "%"
 handlers:
     nothing:
-        class: logging.StreamHandler
-        level: DEBUG
-        formatter: brief
-        stream: ext://os.devnull
+        class: logging.NullHandler
+        level: NOTSET
     console:
         class: logging.StreamHandler
         level: DEBUG
@@ -46,6 +44,6 @@ loggers:
         handlers: [file]
         propogate: no
 root:
-    level: ERROR
+    level: NOTSET
     handlers: [nothing]
     propogate: no
