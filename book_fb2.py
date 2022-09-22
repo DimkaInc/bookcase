@@ -102,7 +102,7 @@ class Book_Fb2(Book):
 
         try:
             sequenceTag = titleinfo[0].getElementsByTagName("sequence")[0]
-            self.sequenceName = sequenceTag.attributes['name'].value
+            self.sequenceName = self.replaces(sequenceTag.attributes['name'].value, self.chars2none, "")
             self.sequenceNumber = sequenceTag.attributes['number'].value
         except:
             self.sequenceName = ""

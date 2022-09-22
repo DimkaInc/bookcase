@@ -275,9 +275,12 @@ class Files():
             Имя файла с путём
         """
         fullfilename = self.getFullPath(filename)
-        index = self.filesList.index(filename)
-        os.remove(fullfilename)
-        self.filesList.remove(filename)
-        if index < self.index:
-            self.index -= 1;
-        self.logger.debug("fileDelete(%s)" % filename)
+        try:
+            index = self.filesList.index(filename)
+            os.remove(fullfilename)
+            self.filesList.remove(filename)
+            if index < self.index:
+                self.index -= 1;
+            self.logger.debug("fileDelete(%s)" % filename)
+        except:
+            self.logger.debug("fileDelete(%s) except!" % filename)
