@@ -216,10 +216,36 @@ class GoodBooks:
                 arch = zipfile.ZipFile(os.path.join(dfile.get("directory"),
                     dfile.get("fileName") + ext), "r")
             except:
+                # Файл может быть ошибочно назван .zip
                 self.logger.warning("Архив повреждён и удалён: %s" % dfile.get("fileName") + ext)
                 self.fileList.fileDelete(dfile.get("fileName") + ext)
                 return book
             archItems = arch.infolist()
+            item = next((x for x in archItems if self.decodeZipFile(x) == "mimetype"), False)
+
+            ### Выявление .epub.zip
+            if item:
+                #print(item)
+                txt = arch.read(item).decode(encoding = "utf-8")
+                if "epub" in txt:
+                    newFile = dfile.get("fileName")
+                    ind =  newFile.rfind(".epub")
+                    if ind > -1:
+                        newFile = newFile[0:ind]
+                    newFile = self.fileList.newFileIfExist(newFile, ".epub")
+                    print(
+                        colored("[EPUB]", "yellow", attrs = ["bold"]),
+                        "Переименование в файл '%s'" % newFile
+                    )
+                    self.logger.info("Архив оказался файлом %s" % newFile)
+                    self.fileList.fileRename(dfile.get("fileName") + dfile.get("extension"), newFile)
+                    return self.takeBook(self.fileList.getFileStruct(self.fileList.getFullPath(newFile)))
+            #if (True and not print(len(archItems))):
+            #    print(item)
+            #print(archItems[0].filename)
+            #quit()
+
+            ### Обработка обычного архива
             for item in archItems:
                 if item.is_dir():
                     continue
