@@ -1,7 +1,6 @@
-﻿# exclude everything except current directory
+# exclude everything except current directory
 __pycache__
 .git/
-.bump*.*
 *.cmd
 *.epub
 *.zip

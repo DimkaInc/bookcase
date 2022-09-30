@@ -189,9 +189,34 @@ class GoodBooks:
             print("Error code:", e.code)
         return False
 
+    def indmin(self, txt, ind, ext):
+        """
+        Возвращает индекс позиции типа файла сравнивая с уже ранее найденным
+        Параметры
+        ---------
+        txt : string
+            Строка имени файла с расширением или последовательностью расширений
+        ind : integer
+            Ранее найденная позиция другого расширения или -1
+        ext : string
+            Искомое расширение файла
+
+        Возвращает
+        ----------
+        integer
+            Позиция найденного расширения или предыдущая позиция
+        """
+        iext = txt.find(ext)
+        if iext > -1:
+            if ind > -1:
+                ind = min(ind, iext)
+            else:
+                ind = iext
+        return ind
+
     def takeBook(self, dfile):
         """
-        возвращает объект книги
+        Возвращает объект книги
         Параметры
         ---------
         dfile : dict
@@ -228,8 +253,16 @@ class GoodBooks:
                 #print(item)
                 txt = arch.read(item).decode(encoding = "utf-8")
                 if "epub" in txt:
+                    arch.close()
                     newFile = dfile.get("fileName")
-                    ind =  newFile.rfind(".epub")
+                    ind = self.indmin(newFile,  -1, ".epub")
+                    ind = self.indmin(newFile, ind, "_epub")
+                    ind = self.indmin(newFile, ind, "_mobi")
+                    ind = self.indmin(newFile, ind, ".mobi")
+                    ind = self.indmin(newFile, ind, "_fb2")
+                    ind = self.indmin(newFile, ind, ".fb2")
+                    ind = self.indmin(newFile, ind, "_zip")
+                    ind = self.indmin(newFile, ind, ".zip")
                     if ind > -1:
                         newFile = newFile[0:ind]
                     newFile = self.fileList.newFileIfExist(newFile, ".epub")
