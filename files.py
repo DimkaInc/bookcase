@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 #import os, sys, shutil, zipfile, datetime, zlib, time
 import os, time, pathlib, logging
+import magic
 from crc32 import Crc32
 
 class Files():
@@ -27,6 +28,186 @@ class Files():
         self.index = 0
         self.filesList = [f for f in os.listdir(self.directory) if os.path.isfile(os.path.join(self.directory, f))]
         self.filesList.sort()
+
+    def getFileAndExts(self, filename):
+        """
+        Возврашает имя файла и тип (типы) в списке
+        Параметры
+        ---------
+        filename : string
+            Имя файла
+
+        Возвращает
+        ----------
+        Dict
+            Список строк: имя файла, тип/типы
+        """
+        suffixes = "".join(pathlib.Path(filename).suffixes)
+        return filename[:-len(suffixes)], suffixes
+
+    def unique_file(self, fullFilename):
+        """
+        Формирует уникальное имя. Если такое имя уже есть, создаёт новое в формате filename_(\d).ext
+        Параметры
+        ---------
+        fullFileName : string
+            имя файла с путём
+
+        Возвращает
+        ----------
+        string
+            Имя файла с путём, уникальное в каталоге
+        """
+        fname, fext = self.getFileAndExts(fullFilename)
+        if len("".join([fname, fext])) > 100:
+            fname = fname[:100 - len(fext)]
+        fnum = ""
+        findex = 0
+        while os.path.exists(fname + fnum + fext):
+            findex += 1
+            fnum = "_(" + str(findex) + ")"
+        return fname + fnum + fext
+
+    def to_unichr(self, str):
+        """
+        Преобразуетс строку вида \d[3] в символ
+        Параметры
+        ---------
+        str : string
+            строка
+
+        Возвращает
+        ----------
+        char
+            символ
+        """
+        oct = int(str.group(1), 8)
+        return chr(oct)
+
+
+    def getContentExt(self, fileName):
+        """
+        Определяет тип файла по содержимому.
+        Параметры
+        ---------
+        fileName : string
+            путь к файлу
+
+        Возвращает
+        ----------
+        Dict
+            Список. Имя файла без последнего расширения, его расширние, 
+            расширение, определённое по содержимому или None
+        """
+        fname, fext = os.path.splitext(fileName)
+        k = magic.detect_from_filename(fileName)
+        # Каталог
+        if "directory" in k.name:
+            return None
+
+        # текстовые документы
+        if ("text" in k.mime_type):
+            ftype = k.mime_type[5:]
+
+            # .xml - Структурированный файл
+            # .fb2 - Fiction Book - электронная книга
+            # .fbd - Fiction Book Description - Файл-описание электроннй книги (Файл спутник для PDF, DjVu CHM, TXT, DOC и других)
+            if (ftype == "xml"):
+                return fname, fext, ".fb2"
+
+            # .py - python script
+            if "python" in ftype:
+                return fname, fext, ".txt"
+
+            # .txt - текстовый файл
+            if ("plain" in ftype):
+                return fname, fext, ".txt"
+
+            # .rtf - текстовый файл
+            if ("rtf" in ftype):
+                return fname, fext, ".rtf"
+
+        if "application" in k.mime_type:
+            ftype = k.mime_type[12:]
+
+            # .zip - архив
+            if ftype == "zip":
+                return fname, fext, ".zip"
+
+            # .pdf - Электронная книга
+            if "pdf" in ftype:
+                return fname, fext, ".pdf"
+
+            # .epub - Электронная книга
+            if "epub" in ftype:
+                return fname, fext, ".epub"
+
+            # .doc - MSOffice документ
+            if "msword" in ftype:
+                return fname, fext, ".doc"
+
+            # .docx - MSOffice документ
+            if ("openxmlformats-officedocument" in ftype) and ("Microsoft Word 2007+" in k.name):
+                return fname, fext, ".docx"
+
+            # .iso - образ CD или DVD
+            if "iso" in ftype:
+                return fname, fext, ".iso"
+
+            # .xml - Структурированный файл
+            # .fb2 - Fiction Book - электронная книга
+            # .fbd - Fiction Book Description - Файл-описание электроннй книги (Файл спутник для PDF, DjVu CHM, TXT, DOC и других)
+            if ftype == "xml":
+                return fname, fext, ".fb2"
+
+            # .fb2 - электронная книга - Странно, что такой тип данных встречается. Наверно много иллюстраций
+            if "octet-stream" in ftype and "data" in k.name:
+                return fname, fext, ".fb2"
+
+            # .chm - Windows Help
+            if "octet-stream" in ftype and "HtmlHelp Data" in k.name:
+                return fname, fext, ".chm"
+
+            # .docx - Старый формат документа OXML
+            if "octet-stream" in ftype and "Microsoft OOXML" in k.name:
+                return fname, fext, ".docx"
+
+            # .mobi - электронная книга
+            if "octet-stream" in ftype and "Mobipocket E-book" in k.name:
+                return fname, fext, ".mobi"
+
+            # AppleDouble encoded
+            if "octet-stream" in ftype and "AppleDouble encoded" in k.name and fname[0] == "." and fext in [".fb2", ".epub", ".doc", ".docx", ".xls", ".txt", ".fbd"]:
+                return fname, fext, ".virus"
+        #
+        # Изображения
+        #
+        if "image" in k.mime_type:
+            ftype = k.mime_type[6:]
+
+            # .DjVu - Фрактальное изображение
+            if "djvu" in ftype:
+                return fname, fext, ".djvu"
+
+            # .DjVu - Фрактальное изображение
+            if "jpeg" in ftype:
+                return fname, fext, ".jpg"
+        #
+        # Аудио
+        #
+        if "audio" in k.mime_type:
+            ftype = k.mime_type[6:]
+            if "mpeg" in ftype and "layer III" in k.name:
+                return fname, fext, ".mp3"
+        #
+        # Видео
+        #
+        if "video" in k.mime_type:
+            ftype = k.mime_type[6:]
+            if "mp4" in ftype:
+                return fname, fext, ".mp4"
+
+        return fname, fext, ".uncnown"
 
     def Directory(self):
         """
@@ -216,6 +397,9 @@ class Files():
             Свободное имя файла с расширением
         """
         num = 0
+        fname, fext = self.getFileAndExts("".join([fname, fext]))
+        if len("".join([fname, fext])) > 100:
+            fname = fname[:100 - len(fext)]
         newfile = "".join([fname, fext])
         while newfile.lower() in map(str.lower, self.filesList):
             num += 1

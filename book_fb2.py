@@ -58,6 +58,8 @@ class Book_Fb2(Book):
 
         authorFirst = self.getItemTextFromXMLNode(titleinfo, "first-name")
         if authorFirst == "":
+            authorFirst = self.getItemTextFromXMLNode(titleinfo, "nickname")
+        if authorFirst == "":
             authorFirst = self.getItemTextFromXMLNode(documentinfo, "first-name")
         #try:
         #    authorFirst = titleinfo[0].getElementsByTagName("first-name")[0].childNodes[0].nodeValue

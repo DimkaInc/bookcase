@@ -1,5 +1,7 @@
 #!/bin/python3
 import zlib, logging
+# -*- coding: utf-8 -*-
+
 
 class Crc32:
     logger = logging.getLogger("crc32")

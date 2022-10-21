@@ -13,6 +13,7 @@
 # -*- coding: utf-8 -*-
 import os, sys, shutil, zipfile, datetime, zlib, pathlib, time, logging, logging.config
 import yaml # pyyaml: python3 -m pip install pyyaml --upgrade
+import magic # python-magic: python3 -m pip install python-magic --upgrade
 #logging.basicConfig(
 #    filename = sys.argv[0]+".log",
 #    filemode = "w",
@@ -21,7 +22,7 @@ import yaml # pyyaml: python3 -m pip install pyyaml --upgrade
 #    datefmt = "%d.%m.%Y %H:%M:%S",
 #    level = logging.DEBUG
 #) # DEBUG INFO WARNING ERROR CRITICAL
-with open("AllRenamer.yaml", "r") as stream:
+with open(os.path.join(os.path.dirname(sys.argv[0]),"AllRenamer.yaml"), "r") as stream:
     logging.config.dictConfig(yaml.safe_load(stream))
 
 from platform import python_version
@@ -65,6 +66,32 @@ class GoodBooks:
             colored(self.email, "cyan", attrs = ["bold", "underline"]), "\n"
         )
 
+
+    def getFileType(self, fullfilename):
+        """
+        Возвращает тип файла независимо от установленного расширения
+        Параметры
+        ---------
+        fullfilename : string
+            Полный путь к файлу
+
+        Возвращает
+        ----------
+        string
+            расширение для файла
+        """
+        resp = magic.from_file(fullfilename)
+        if ("text" in resp) and (("ISO" in resp)
+            or ("UTF-8 Unicode" in rest)):
+            return ".txt"
+        if "Zip archive data" in resp:
+            return ".zip"
+        if ("XML" in resp) and ("document" in resp):
+            return ".fb2" # ".xml"
+        if "'Rich Text Format data" in resp:
+            return ".rtf"
+        if "EPUB document" in resp:
+            return ".epub"
 
     def tryfb2epub(self, filename):
         newfile = self.tryNewFile(filename, ".fb2.epub", ".epub")
@@ -129,7 +156,6 @@ class GoodBooks:
         """
         Извлечение файла из архива в текущий каталог без сохранения структуры
         """
-
         arch = zipfile.ZipFile(zipFile, "r")
         name, date_time = zipItem.filename, zipItem.date_time
         filename = os.path.basename(self.decodeZipFile(zipItem, zipFile))
@@ -315,6 +341,16 @@ class GoodBooks:
             book = None
         return book
 
+    def checkExtension(self, dfile):
+        """
+        Поверяет соответствие расшинения файла содержимому
+        Параметры
+        ---------
+        dfile : dict
+            Структурированная запись о файле
+        """
+
+
     def start(self, directory = "."):
         percent = 0
         #self.files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
@@ -332,6 +368,7 @@ class GoodBooks:
             dfile = self.fileList.getFileStruct(self.fileList.getFullPath(filename))
             if not dfile.get("extension") in [".fb2", ".zip", ".epub", ".fb2.zip", ".fb2.epub", ".mobi"]:
                 continue
+
             shortName = dfile.get("clearFileName") + dfile.get("extension")
             crc = dfile.get("crc32")
             book = self.takeBook(dfile)
